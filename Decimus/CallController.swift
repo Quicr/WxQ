@@ -29,7 +29,9 @@ class CallController: QControllerGWObjC<PublisherDelegate, SubscriberDelegate> {
          captureManager: CaptureManager,
          config: SubscriptionConfig,
          engine: DecimusAudioEngine,
-         granularMetrics: Bool) throws {
+         granularMetrics: Bool,
+         ptt: PushToTalkManager,
+         conferenceId: UInt32) throws {
         self.config = config
         super.init { level, msg, alert in
             CallController.logger.log(level: DecimusLogger.LogLevel(rawValue: level)!, msg!, alert: alert)
@@ -46,7 +48,9 @@ class CallController: QControllerGWObjC<PublisherDelegate, SubscriberDelegate> {
                                                    reliability: config.mediaReliability,
                                                    engine: engine,
                                                    granularMetrics: granularMetrics,
-                                                   bitrateType: config.bitrateType)
+                                                   bitrateType: config.bitrateType,
+                                                   ptt: ptt,
+                                                   conferenceId: conferenceId)
     }
 
     func connect(config: CallConfig) async throws {

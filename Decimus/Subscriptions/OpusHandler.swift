@@ -7,13 +7,6 @@ enum OpusSubscriptionError: Error {
     case failedDecoderCreation
 }
 
-private class Weak<T> {
-    var value: T
-    init(value: T) {
-        self.value = value
-    }
-}
-
 class OpusHandler {
     private static let logger = DecimusLogger(OpusHandler.self)
     private let sourceId: SourceIDType

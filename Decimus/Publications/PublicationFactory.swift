@@ -12,15 +12,21 @@ class PublicationFactory {
     private let reliability: MediaReliability
     private let granularMetrics: Bool
     private let engine: DecimusAudioEngine
+    private let ptt: PushToTalkManager
+    private let conferenceId: UInt32
 
     init(opusWindowSize: OpusWindowSize,
          reliability: MediaReliability,
          engine: DecimusAudioEngine,
-         granularMetrics: Bool) {
+         granularMetrics: Bool,
+         ptt: PushToTalkManager,
+         conferenceId: UInt32) {
         self.opusWindowSize = opusWindowSize
         self.reliability = reliability
         self.engine = engine
         self.granularMetrics = granularMetrics
+        self.ptt = ptt
+        self.conferenceId = conferenceId
     }
 
     func create(_ namespace: QuicrNamespace,
@@ -60,18 +66,35 @@ class PublicationFactory {
                                        encoder: encoder,
                                        device: device)
         case .opus:
+            // TODO: Handle opus audio vs. PTT channel.
             guard let config = config as? AudioCodecConfig else {
                 throw CodecError.invalidCodecConfig(type(of: config))
             }
-            return try OpusPublication(namespace: namespace,
-                                       publishDelegate: publishDelegate,
-                                       sourceID: sourceID,
-                                       metricsSubmitter: metricsSubmitter,
-                                       opusWindowSize: opusWindowSize,
-                                       reliable: reliability.audio.publication,
-                                       engine: self.engine,
-                                       granularMetrics: self.granularMetrics,
-                                       config: config)
+            
+            // Opus.
+            let opus = try OpusPublication(namespace: namespace,
+                                           publishDelegate: publishDelegate,
+                                           sourceID: sourceID,
+                                           metricsSubmitter: metricsSubmitter,
+                                           opusWindowSize: opusWindowSize,
+                                           reliable: reliability.audio.publication,
+                                           engine: self.engine,
+                                           granularMetrics: self.granularMetrics,
+                                           config: config)
+
+            // PTT.
+            // TODO: Source PTT flag.
+            let ptt = true
+            if ptt {
+                let uuid = self.conferenceId.uuid
+                var channel = self.ptt.getChannel(uuid: uuid)
+                if channel == nil {
+                    channel = .init(uuid: uuid, createdFrom: .request)
+                    try self.ptt.registerChannel(channel!)
+                }
+                channel!.publication = opus
+            }
+            return opus
         default:
             throw CodecError.noCodecFound(config.codec)
         }

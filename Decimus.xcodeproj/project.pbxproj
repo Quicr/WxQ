@@ -57,6 +57,12 @@
 		9B48068929829FB90040F5D4 /* VideoParticipant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B48068829829FB90040F5D4 /* VideoParticipant.swift */; };
 		9B48068C298301FD0040F5D4 /* QMediaTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B48068B298301FD0040F5D4 /* QMediaTypes.swift */; };
 		9B52EE332B763157006E9C58 /* PublicationPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B52EE322B763157006E9C58 /* PublicationPopover.swift */; };
+		9B7CAFC22BC7EF7500E1F667 /* PushToTalkPublication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7CAFC12BC7EF7500E1F667 /* PushToTalkPublication.swift */; };
+		9B7CAFC42BC7F0F600E1F667 /* PushToTalkSubscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7CAFC32BC7F0F600E1F667 /* PushToTalkSubscription.swift */; };
+		9B7CAFC62BC7F0FE00E1F667 /* PushToTalkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7CAFC52BC7F0FE00E1F667 /* PushToTalkManager.swift */; };
+		9B7CAFC82BC7F1ED00E1F667 /* PushToTalk.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B7CAFC72BC7F1ED00E1F667 /* PushToTalk.framework */; platformFilter = ios; };
+		9B7CAFCA2BC7F33900E1F667 /* PushToTalkChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7CAFC92BC7F33900E1F667 /* PushToTalkChannel.swift */; };
+		9B7CAFCC2BC8798000E1F667 /* Weak.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7CAFCB2BC8798000E1F667 /* Weak.swift */; };
 		9B7F40022ACB1914003333C3 /* H264Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7F40012ACB1914003333C3 /* H264Utilities.swift */; };
 		9B7F40042ACB5808003333C3 /* TestH264Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7F40032ACB5808003333C3 /* TestH264Utilities.swift */; };
 		9B87FB622A03B91E00C92DD1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B87FB612A03B91E00C92DD1 /* SettingsView.swift */; };
@@ -221,6 +227,12 @@
 		9B48068829829FB90040F5D4 /* VideoParticipant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoParticipant.swift; sourceTree = "<group>"; };
 		9B48068B298301FD0040F5D4 /* QMediaTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QMediaTypes.swift; sourceTree = "<group>"; };
 		9B52EE322B763157006E9C58 /* PublicationPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicationPopover.swift; sourceTree = "<group>"; };
+		9B7CAFC12BC7EF7500E1F667 /* PushToTalkPublication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushToTalkPublication.swift; sourceTree = "<group>"; };
+		9B7CAFC32BC7F0F600E1F667 /* PushToTalkSubscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushToTalkSubscription.swift; sourceTree = "<group>"; };
+		9B7CAFC52BC7F0FE00E1F667 /* PushToTalkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushToTalkManager.swift; sourceTree = "<group>"; };
+		9B7CAFC72BC7F1ED00E1F667 /* PushToTalk.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PushToTalk.framework; path = System/Library/Frameworks/PushToTalk.framework; sourceTree = SDKROOT; };
+		9B7CAFC92BC7F33900E1F667 /* PushToTalkChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushToTalkChannel.swift; sourceTree = "<group>"; };
+		9B7CAFCB2BC8798000E1F667 /* Weak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Weak.swift; sourceTree = "<group>"; };
 		9B7F40012ACB1914003333C3 /* H264Utilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = H264Utilities.swift; sourceTree = "<group>"; };
 		9B7F40032ACB5808003333C3 /* TestH264Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestH264Utilities.swift; sourceTree = "<group>"; };
 		9B85951429F03147008C813C /* TestPlan.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestPlan.xctestplan; sourceTree = "<group>"; };
@@ -344,6 +356,7 @@
 				18BF45782B0E0F3D006E8E24 /* TPCircularBuffer in Frameworks */,
 				FFA0E8502A6F25A20027603B /* WrappingHStack in Frameworks */,
 				188ABB562A792E9C00B31A6E /* Opus in Frameworks */,
+				9B7CAFC82BC7F1ED00E1F667 /* PushToTalk.framework in Frameworks */,
 				18F7C4DA2AB1C7BD005EDB88 /* OrderedCollections in Frameworks */,
 				1849128A2A3B560200773D39 /* clibjitter.xcframework in Frameworks */,
 			);
@@ -430,10 +443,22 @@
 		9B76FFE0298D5566006B5267 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9B7CAFC72BC7F1ED00E1F667 /* PushToTalk.framework */,
 				184912892A3B560200773D39 /* clibjitter.xcframework */,
 				D786194B2A290F1600EC0556 /* qmedia.xcframework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		9B7CAFC02BC7EF6D00E1F667 /* PTT */ = {
+			isa = PBXGroup;
+			children = (
+				9B7CAFC12BC7EF7500E1F667 /* PushToTalkPublication.swift */,
+				9B7CAFC32BC7F0F600E1F667 /* PushToTalkSubscription.swift */,
+				9B7CAFC52BC7F0FE00E1F667 /* PushToTalkManager.swift */,
+				9B7CAFC92BC7F33900E1F667 /* PushToTalkChannel.swift */,
+			);
+			path = PTT;
 			sourceTree = "<group>";
 		};
 		9B85951C29F04521008C813C /* Tests */ = {
@@ -476,6 +501,7 @@
 		9BA27FC4297D7270007013B2 /* Decimus */ = {
 			isa = PBXGroup;
 			children = (
+				9B7CAFC02BC7EF6D00E1F667 /* PTT */,
 				186763532B2B69EB00339421 /* Measurements */,
 				FF3B952D2A60C77B00CE463F /* Lib */,
 				18C89A372A13D14A005B333B /* Metrics */,
@@ -506,6 +532,7 @@
 				9B131C682B7E476500B29D77 /* DecimusVideoFrame.swift */,
 				9B131E342B7E548700B29D77 /* CMSampleBuffer+Attachments.swift */,
 				9BC53C9B2BFE075300BB39C6 /* VarianceCalculator.swift */,
+				9B7CAFCB2BC8798000E1F667 /* Weak.swift */,
 			);
 			path = Decimus;
 			sourceTree = "<group>";
@@ -894,6 +921,7 @@
 				18C89A462A14E667005B333B /* AppStorageWrapper.swift in Sources */,
 				18865CC72A81356100B9A647 /* SubscriptionSettingsView.swift in Sources */,
 				FFBF2FB729BFE48100D769CF /* ActionButton.swift in Sources */,
+				9B7CAFC22BC7EF7500E1F667 /* PushToTalkPublication.swift in Sources */,
 				18B2F40A2AC5B9C5008E3BFD /* VideoDequeuer.swift in Sources */,
 				1867635B2B2B6B8200339421 /* OpusPublication+Measurement.swift in Sources */,
 				18162CED2AB1C28300A75199 /* TransportConfigSettings.swift in Sources */,
@@ -906,6 +934,7 @@
 				9B131C672B7E467500B29D77 /* ApplicationH264SEIs.swift in Sources */,
 				D78619472A28FC9D00EC0556 /* QControllerGW.mm in Sources */,
 				FF3334002AA77D8B00DDE4AD /* ManifestTypes.swift in Sources */,
+				9B7CAFC42BC7F0F600E1F667 /* PushToTalkSubscription.swift in Sources */,
 				FF6D6D752A01CCAE00B535DA /* ManifestController.swift in Sources */,
 				9B131E332B7E4A1C00B29D77 /* ApplicationHEVCSEIs.swift in Sources */,
 				9B0C4E1C2A94BA5D00F6A644 /* WrappedOptional.swift in Sources */,
@@ -915,8 +944,10 @@
 				9B1143BB2BADBC0A003A2D2D /* VideoSubscription+Measurement.swift in Sources */,
 				FF6C80AB2A17E8980094751E /* SubscriptionError.swift in Sources */,
 				1867635F2B2B6BE600339421 /* OpusSubscription+Measurement.swift in Sources */,
+				9B7CAFCC2BC8798000E1F667 /* Weak.swift in Sources */,
 				9B131E352B7E548700B29D77 /* CMSampleBuffer+Attachments.swift in Sources */,
 				FF6C80A92A16DB850094751E /* Publication.swift in Sources */,
+				9B7CAFCA2BC7F33900E1F667 /* PushToTalkChannel.swift in Sources */,
 				186763552B2B69FD00339421 /* VideoHandler+Measurement.swift in Sources */,
 				1867635D2B2B6BB000339421 /* H264Publication+Measurement.swift in Sources */,
 				FF2498B42A55E8CC00C6D66D /* SubscriptionFactory.swift in Sources */,
@@ -928,6 +959,7 @@
 				1848B86D2ABAE21B00275F71 /* DecimusAudioEngine.swift in Sources */,
 				18A108D02AA60DAB00FDC0A5 /* CpuUsage.swift in Sources */,
 				183600592B6BCBAC00BC2919 /* SubscriptionPopover.swift in Sources */,
+				9B7CAFC62BC7F0FE00E1F667 /* PushToTalkManager.swift in Sources */,
 				186763572B2B6B1100339421 /* CaptureManager+Measurement.swift in Sources */,
 				FFB8CBE529C148B70093C623 /* ActionPicker.swift in Sources */,
 				D7D156392AD73DE600B4E4F2 /* EncodedFrameBufferAllocator.mm in Sources */,
@@ -1193,7 +1225,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Decimus;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Decimus needs your camera in order for others to see you in calls";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Decimus needs your camera in order for others to see you in calls";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Decimus needs your microphone in order for others to hear you in calls";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1266,7 +1298,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Decimus;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Decimus needs your camera in order for others to see you in calls";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Decimus needs your camera in order for others to see you in calls";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Decimus needs your microphone in order for others to hear you in calls";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

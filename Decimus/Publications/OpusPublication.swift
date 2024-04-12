@@ -1,4 +1,5 @@
 import Foundation
+import Atomics
 import AVFAudio
 import AVFoundation
 import CTPCircularBuffer
@@ -20,9 +21,14 @@ class OpusPublication: Publication {
     private let granularMetrics: Bool
     private let engine: DecimusAudioEngine
     private var encodeTask: Task<(), Never>?
+    private var transmit: ManagedAtomic<Bool> = .init(true)
 
-    lazy var block: AVAudioSinkNodeReceiverBlock = { [buffer] timestamp, numFrames, data in
+    lazy var block: AVAudioSinkNodeReceiverBlock = { [buffer, weak transmit] timestamp, numFrames, data in
         assert(data.pointee.mNumberBuffers <= 2)
+        guard let transmit = transmit,
+              transmit.load(ordering: .acquiring) else {
+            return .zero
+        }
         let copied = TPCircularBufferCopyAudioBufferList(buffer,
                                                          data,
                                                          timestamp,
@@ -157,4 +163,12 @@ class OpusPublication: Publication {
     }
 
     func publish(_ flag: Bool) {}
+    
+    func startProcessing() {
+        self.transmit.store(true, ordering: .releasing)
+    }
+    
+    func stopProcessing() {
+        self.transmit.store(false, ordering: .releasing)
+    }
 }

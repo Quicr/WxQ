@@ -117,6 +117,19 @@ struct InCallView: View {
                                        height: gHeight / 2 - (cHeight * 0.75) - pHeight))
                 }
                 // swiftlint:enable:force_try
+
+                HStack {
+                    Button {
+                        viewModel.sendPTT()
+                    } label: {
+                        Text("Start PTT")
+                    }
+                    Button {
+                        viewModel.stopPTT()
+                    } label: {
+                        Text("Stop PTT")
+                    }
+                }
             }
 
             if leaving {
@@ -199,6 +212,7 @@ extension InCallView {
         private var submitter: MetricsSubmitter?
         private var audioCapture = false
         private var videoCapture = false
+        private let ptt: PushToTalkManager
 
         @AppStorage("influxConfig")
         private var influxConfig: AppStorageWrapper<InfluxConfig> = .init(value: .init())
@@ -220,6 +234,12 @@ extension InCallView {
                 "conference": "\(config.conferenceID)",
                 "protocol": "\(config.connectionProtocol)"
             ]
+
+            #if os(iOS) && !targetEnvironment(macCatalyst)
+            self.ptt = PushToTalkManagerImpl()
+            #else
+            self.ptt = MockPushToTalkManager()
+            #endif
 
             if influxConfig.value.submit {
                 let influx = InfluxMetricsSubmitter(config: influxConfig.value, tags: tags)
@@ -254,7 +274,16 @@ extension InCallView {
                                                 captureManager: captureManager,
                                                 config: subscriptionConfig.value,
                                                 engine: engine,
-                                                granularMetrics: influxConfig.value.granular)
+                                                granularMetrics: influxConfig.value.granular,
+                                                ptt: self.ptt,
+                                                conferenceId: config.conferenceID)
+                    Task(priority: .utility) {
+                        do {
+                            try await ptt.start()
+                        } catch {
+                            Self.logger.error(error.localizedDescription)
+                        }
+                    }
                 } catch {
                     Self.logger.error("CallController failed: \(error.localizedDescription)", alert: true)
                 }
@@ -336,6 +365,14 @@ extension InCallView {
                 Self.logger.error("Error while leaving call: \(error)", alert: true)
             }
         }
+        
+        func sendPTT() {
+            try! self.ptt.startTransmitting(self.config.conferenceID.uuid)
+        }
+        
+        func stopPTT() {
+            try! self.ptt.stopTransmitting(self.config.conferenceID.uuid)
+        }
     }
 }
 
@@ -358,5 +395,19 @@ struct InCallView_Previews: PreviewProvider {
         InCallView(config: .init(address: "127.0.0.1",
                                  port: 5001,
                                  connectionProtocol: .QUIC)) { }
+    }
+}
+
+extension UInt32 {
+    var uuid: UUID {
+        var mutable = self
+        let bytePtr = withUnsafePointer(to: &mutable) {
+            $0.withMemoryRebound(to: UInt8.self, capacity: MemoryLayout<UInt32>.size) {
+                UnsafeBufferPointer(start: $0, count: MemoryLayout<UInt32>.size)
+            }
+        }
+        let byteArray = Array(bytePtr)
+        let cuuid = uuid_t(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, byteArray[0], byteArray[1], byteArray[2], byteArray[3])
+        return UUID(uuid: cuuid)
     }
 }

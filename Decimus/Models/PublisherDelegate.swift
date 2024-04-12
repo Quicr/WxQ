@@ -18,7 +18,9 @@ class PublisherDelegate: QPublisherDelegateObjC {
          reliability: MediaReliability,
          engine: DecimusAudioEngine,
          granularMetrics: Bool,
-         bitrateType: BitrateType) {
+         bitrateType: BitrateType,
+         ptt: PushToTalkManager,
+         conferenceId: UInt32) {
         self.publishDelegate = publishDelegate
         self.metricsSubmitter = metricsSubmitter
         self.capture = captureManager
@@ -26,7 +28,9 @@ class PublisherDelegate: QPublisherDelegateObjC {
         self.factory = .init(opusWindowSize: opusWindowSize,
                              reliability: reliability,
                              engine: engine,
-                             granularMetrics: granularMetrics)
+                             granularMetrics: granularMetrics,
+                             ptt: ptt,
+                             conferenceId: conferenceId)
     }
 
     func allocatePub(byNamespace quicrNamepace: QuicrNamespace!,
