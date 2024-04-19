@@ -219,6 +219,9 @@ extension InCallView {
 
         @AppStorage("subscriptionConfig")
         private var subscriptionConfig: AppStorageWrapper<SubscriptionConfig> = .init(value: .init())
+        
+        @AppStorage(PTTSettingsView.defaultsKey)
+        private var pttConfig: AppStorageWrapper<PTTConfig> = .init(value: .init())
 
         init(config: CallConfig) {
             self.config = config
@@ -235,11 +238,15 @@ extension InCallView {
                 "protocol": "\(config.connectionProtocol)"
             ]
 
-            #if os(iOS) && !targetEnvironment(macCatalyst)
-            self.ptt = PushToTalkManagerImpl()
-            #else
-            self.ptt = MockPushToTalkManager()
-            #endif
+            if self.pttConfig.value.enable {
+                let pttServer = PushToTalkServer(url: .init(string: self.pttConfig.value.address)!,
+                                                 name: config.email)
+#if os(iOS) && !targetEnvironment(macCatalyst)
+                self.ptt = PushToTalkManagerImpl(api: pttServer)
+#else
+                self.ptt = MockPushToTalkManager(api: pttServer)
+#endif
+            }
 
             if influxConfig.value.submit {
                 let influx = InfluxMetricsSubmitter(config: influxConfig.value, tags: tags)

@@ -21,6 +21,7 @@ struct SettingsView: View {
                     UserDefaults.standard.removeObject(forKey: RelaySettingsView.defaultsKey)
                     UserDefaults.standard.removeObject(forKey: ManifestSettingsView.defaultsKey)
                     UserDefaults.standard.removeObject(forKey: InfluxSettingsView.defaultsKey)
+                    UserDefaults.standard.removeObject(forKey: PTTSettingsView.defaultsKey)
                     UserDefaults.standard.removeObject(forKey: SubscriptionSettingsView.defaultsKey)
                 }
             }
@@ -37,6 +38,9 @@ struct SettingsView: View {
                 .decimusTextStyle()
 
             InfluxSettingsView()
+                .decimusTextStyle()
+
+            PTTSettingsView()
                 .decimusTextStyle()
 
             SubscriptionSettingsView()

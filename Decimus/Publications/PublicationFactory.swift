@@ -14,6 +14,7 @@ class PublicationFactory {
     private let engine: DecimusAudioEngine
     private let ptt: PushToTalkManager
     private let conferenceId: UInt32
+    private let logger = DecimusLogger(PublicationFactory.self)
 
     init(opusWindowSize: OpusWindowSize,
          reliability: MediaReliability,
@@ -89,8 +90,15 @@ class PublicationFactory {
                 let uuid = self.conferenceId.uuid
                 var channel = self.ptt.getChannel(uuid: uuid)
                 if channel == nil {
-                    channel = .init(uuid: uuid, createdFrom: .request)
-                    try self.ptt.registerChannel(channel!)
+                    let created = PushToTalkChannel(uuid: uuid, createdFrom: .request)
+                    channel = created
+                    Task(priority: .medium) {
+                        do {
+                            try await self.ptt.registerChannel(created)
+                        } catch {
+                            self.logger.error("Failed to register channel: \(error.localizedDescription)")
+                        }
+                    }
                 }
                 channel!.publication = opus
             }

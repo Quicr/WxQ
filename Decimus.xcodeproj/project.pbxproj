@@ -57,6 +57,8 @@
 		9B48068929829FB90040F5D4 /* VideoParticipant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B48068829829FB90040F5D4 /* VideoParticipant.swift */; };
 		9B48068C298301FD0040F5D4 /* QMediaTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B48068B298301FD0040F5D4 /* QMediaTypes.swift */; };
 		9B52EE332B763157006E9C58 /* PublicationPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B52EE322B763157006E9C58 /* PublicationPopover.swift */; };
+		9B61F5A02BD2978300A64ED9 /* PTTSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B61F59F2BD2978300A64ED9 /* PTTSettingsView.swift */; };
+		9B61F5A22BD297A300A64ED9 /* PTTConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B61F5A12BD297A300A64ED9 /* PTTConfig.swift */; };
 		9B7CAFC22BC7EF7500E1F667 /* PushToTalkPublication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7CAFC12BC7EF7500E1F667 /* PushToTalkPublication.swift */; };
 		9B7CAFC42BC7F0F600E1F667 /* PushToTalkSubscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7CAFC32BC7F0F600E1F667 /* PushToTalkSubscription.swift */; };
 		9B7CAFC62BC7F0FE00E1F667 /* PushToTalkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7CAFC52BC7F0FE00E1F667 /* PushToTalkManager.swift */; };
@@ -227,6 +229,8 @@
 		9B48068829829FB90040F5D4 /* VideoParticipant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoParticipant.swift; sourceTree = "<group>"; };
 		9B48068B298301FD0040F5D4 /* QMediaTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QMediaTypes.swift; sourceTree = "<group>"; };
 		9B52EE322B763157006E9C58 /* PublicationPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicationPopover.swift; sourceTree = "<group>"; };
+		9B61F59F2BD2978300A64ED9 /* PTTSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTTSettingsView.swift; sourceTree = "<group>"; };
+		9B61F5A12BD297A300A64ED9 /* PTTConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTTConfig.swift; sourceTree = "<group>"; };
 		9B7CAFC12BC7EF7500E1F667 /* PushToTalkPublication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushToTalkPublication.swift; sourceTree = "<group>"; };
 		9B7CAFC32BC7F0F600E1F667 /* PushToTalkSubscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushToTalkSubscription.swift; sourceTree = "<group>"; };
 		9B7CAFC52BC7F0FE00E1F667 /* PushToTalkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushToTalkManager.swift; sourceTree = "<group>"; };
@@ -402,6 +406,7 @@
 				FFFF72DC2A280B6300D4D5EE /* ManifestSettingsView.swift */,
 				18865CC62A81356100B9A647 /* SubscriptionSettingsView.swift */,
 				9BD96EFC2AC2DAA200EC794C /* VideoJitterBufferSettingsView.swift */,
+				9B61F59F2BD2978300A64ED9 /* PTTSettingsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -571,6 +576,7 @@
 				FFD1CFED2A2131250034CDD0 /* PublisherDelegate.swift */,
 				FFD1CFEF2A214FA60034CDD0 /* SubscriberDelegate.swift */,
 				FF3333FF2AA77D8B00DDE4AD /* ManifestTypes.swift */,
+				9B61F5A12BD297A300A64ED9 /* PTTConfig.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -979,8 +985,10 @@
 				FF2498B72A55E95E00C6D66D /* VideoSubscription.swift in Sources */,
 				18C89A442A13ED24005B333B /* MockSubmitter.swift in Sources */,
 				FF1C5C2E29DD110600887833 /* LeaveModal.swift in Sources */,
+				9B61F5A22BD297A300A64ED9 /* PTTConfig.swift in Sources */,
 				186763592B2B6B3B00339421 /* VideoJitterBuffer+Measurement.swift in Sources */,
 				FFFF72DD2A280B6300D4D5EE /* ManifestSettingsView.swift in Sources */,
+				9B61F5A02BD2978300A64ED9 /* PTTSettingsView.swift in Sources */,
 				18C89A4B2A14EF1F005B333B /* InfluxSettingsView.swift in Sources */,
 				18BF45712B0CD632006E8E24 /* VTEncoder.swift in Sources */,
 				180E74642B0E4F5E0045B9D6 /* VideoHandler.swift in Sources */,
