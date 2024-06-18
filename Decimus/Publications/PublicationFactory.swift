@@ -12,7 +12,7 @@ class PublicationFactory {
     private let reliability: MediaReliability
     private let granularMetrics: Bool
     private let engine: DecimusAudioEngine
-    private let ptt: PushToTalkManager
+    private let ptt: PushToTalkManager?
     private let conferenceId: UInt32
     private let logger = DecimusLogger(PublicationFactory.self)
 
@@ -20,7 +20,7 @@ class PublicationFactory {
          reliability: MediaReliability,
          engine: DecimusAudioEngine,
          granularMetrics: Bool,
-         ptt: PushToTalkManager,
+         ptt: PushToTalkManager?,
          conferenceId: UInt32) {
         self.opusWindowSize = opusWindowSize
         self.reliability = reliability
@@ -71,7 +71,7 @@ class PublicationFactory {
             guard let config = config as? AudioCodecConfig else {
                 throw CodecError.invalidCodecConfig(type(of: config))
             }
-            
+
             // Opus.
             let opus = try OpusPublication(namespace: namespace,
                                            publishDelegate: publishDelegate,
@@ -85,16 +85,15 @@ class PublicationFactory {
 
             // PTT.
             // TODO: Source PTT flag.
-            let ptt = true
-            if ptt {
+            if let ptt = self.ptt {
                 let uuid = self.conferenceId.uuid
-                var channel = self.ptt.getChannel(uuid: uuid)
+                var channel = ptt.getChannel(uuid: uuid)
                 if channel == nil {
                     let created = PushToTalkChannel(uuid: uuid, createdFrom: .request)
                     channel = created
                     Task(priority: .medium) {
                         do {
-                            try await self.ptt.registerChannel(created)
+                            try await ptt.registerChannel(created)
                         } catch {
                             self.logger.error("Failed to register channel: \(error.localizedDescription)")
                         }

@@ -30,7 +30,7 @@ class CallController: QControllerGWObjC<PublisherDelegate, SubscriberDelegate> {
          config: SubscriptionConfig,
          engine: DecimusAudioEngine,
          granularMetrics: Bool,
-         ptt: PushToTalkManager,
+         ptt: PushToTalkManager?,
          conferenceId: UInt32) throws {
         self.config = config
         super.init { level, msg, alert in

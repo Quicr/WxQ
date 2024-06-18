@@ -19,7 +19,7 @@ class PublisherDelegate: QPublisherDelegateObjC {
          engine: DecimusAudioEngine,
          granularMetrics: Bool,
          bitrateType: BitrateType,
-         ptt: PushToTalkManager,
+         ptt: PushToTalkManager?,
          conferenceId: UInt32) {
         self.publishDelegate = publishDelegate
         self.metricsSubmitter = metricsSubmitter

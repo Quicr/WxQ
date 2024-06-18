@@ -14,6 +14,7 @@ struct InCallView: View {
     @State private var lastTap: Date = .now
     @State private var isShowingSubscriptions = false
     @State private var isShowingPublications = false
+    @State private var transmittingPtt = false
     var noParticipants: Bool {
         viewModel.controller?.subscriberDelegate.participants.participants.isEmpty ?? true
     }
@@ -98,6 +99,33 @@ struct InCallView: View {
                         .disabled(leaving)
                         .padding(.bottom)
                         .frame(alignment: .top)
+                    if let ptt = self.viewModel.ptt {
+                        HStack {
+                            if self.transmittingPtt {
+                                Button {
+                                    do {
+                                        try viewModel.stopPTT(ptt: ptt)
+                                        self.transmittingPtt = false
+                                    } catch {
+                                        print("Failed to stop PTT: \(error.localizedDescription)")
+                                    }
+                                } label: {
+                                    Text("Stop PTT")
+                                }
+                            } else {
+                                Button {
+                                    do {
+                                        try viewModel.sendPTT(ptt: ptt)
+                                        self.transmittingPtt = true
+                                    } catch {
+                                        print("Failed to start PTT: \(error.localizedDescription)")
+                                    }
+                                } label: {
+                                    Text("Start PTT")
+                                }
+                            }
+                        }
+                    }
                 } // VStack end.
 
                 // Preview / self-view.
@@ -117,19 +145,6 @@ struct InCallView: View {
                                        height: gHeight / 2 - (cHeight * 0.75) - pHeight))
                 }
                 // swiftlint:enable:force_try
-
-                HStack {
-                    Button {
-                        viewModel.sendPTT()
-                    } label: {
-                        Text("Start PTT")
-                    }
-                    Button {
-                        viewModel.stopPTT()
-                    } label: {
-                        Text("Stop PTT")
-                    }
-                }
             }
 
             if leaving {
@@ -212,14 +227,14 @@ extension InCallView {
         private var submitter: MetricsSubmitter?
         private var audioCapture = false
         private var videoCapture = false
-        private let ptt: PushToTalkManager
+        var ptt: PushToTalkManager?
 
         @AppStorage("influxConfig")
         private var influxConfig: AppStorageWrapper<InfluxConfig> = .init(value: .init())
 
         @AppStorage("subscriptionConfig")
         private var subscriptionConfig: AppStorageWrapper<SubscriptionConfig> = .init(value: .init())
-        
+
         @AppStorage(PTTSettingsView.defaultsKey)
         private var pttConfig: AppStorageWrapper<PTTConfig> = .init(value: .init())
 
@@ -241,11 +256,13 @@ extension InCallView {
             if self.pttConfig.value.enable {
                 let pttServer = PushToTalkServer(url: .init(string: self.pttConfig.value.address)!,
                                                  name: config.email)
-#if os(iOS) && !targetEnvironment(macCatalyst)
+                #if os(iOS) && !targetEnvironment(macCatalyst)
                 self.ptt = PushToTalkManagerImpl(api: pttServer)
-#else
+                #else
                 self.ptt = MockPushToTalkManager(api: pttServer)
-#endif
+                #endif
+            } else {
+                self.ptt = nil
             }
 
             if influxConfig.value.submit {
@@ -284,11 +301,13 @@ extension InCallView {
                                                 granularMetrics: influxConfig.value.granular,
                                                 ptt: self.ptt,
                                                 conferenceId: config.conferenceID)
-                    Task(priority: .utility) {
-                        do {
-                            try await ptt.start()
-                        } catch {
-                            Self.logger.error(error.localizedDescription)
+                    if let ptt = self.ptt {
+                        Task(priority: .utility) {
+                            do {
+                                try await ptt.start()
+                            } catch {
+                                Self.logger.error(error.localizedDescription)
+                            }
                         }
                     }
                 } catch {
@@ -372,13 +391,13 @@ extension InCallView {
                 Self.logger.error("Error while leaving call: \(error)", alert: true)
             }
         }
-        
-        func sendPTT() {
-            try! self.ptt.startTransmitting(self.config.conferenceID.uuid)
+
+        func sendPTT(ptt: PushToTalkManager) throws {
+            try ptt.startTransmitting(self.config.conferenceID.uuid)
         }
-        
-        func stopPTT() {
-            try! self.ptt.stopTransmitting(self.config.conferenceID.uuid)
+
+        func stopPTT(ptt: PushToTalkManager) throws {
+            try ptt.stopTransmitting(self.config.conferenceID.uuid)
         }
     }
 }
