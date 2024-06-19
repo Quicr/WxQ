@@ -84,8 +84,8 @@ class PublicationFactory {
                                            config: config)
 
             // PTT.
-            // TODO: Source PTT flag.
             if let ptt = self.ptt {
+                opus.stopProcessing()
                 let uuid = self.conferenceId.uuid
                 var channel = ptt.getChannel(uuid: uuid)
                 if channel == nil {
