@@ -48,6 +48,14 @@ class PushToTalkServer {
         _ = try await self.session.data(for: request)
     }
 
+    func stopAudio(channel: UUID) async throws {
+        guard let ourself = self.ourself else { throw PushToTalkError.unjoined }
+        let url = self.url.appending(path: "/channel/\(channel.uuidString)/audio/\(ourself.id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        _ = try await self.session.data(for: request)
+    }
+
     func leave(channel: UUID) async throws {
         guard let ourself = self.ourself else { throw PushToTalkError.unjoined }
         let url = self.url.appending(path: "/channel/\(channel.uuidString)/\(ourself.id)")
@@ -59,6 +67,7 @@ class PushToTalkServer {
 
 protocol PushToTalkManager {
     func start() async throws
+    func shutdown() throws
     func startTransmitting(_ uuid: UUID) throws
     func stopTransmitting(_ uuid: UUID) throws
     func registerChannel(_ channel: PushToTalkChannel) async throws
@@ -76,6 +85,19 @@ class MockPushToTalkManager: PushToTalkManager {
     }
 
     func start() async throws { }
+
+    func shutdown() {
+        for (uuid, channel) in self.channels where channel.joined {
+            Task(priority: .utility) {
+                do {
+                    try await self.api.leave(channel: uuid)
+                } catch {
+                    self.logger.error("[PTT] (\(uuid) Failed to leave channel: \(error.localizedDescription)")
+                }
+            }
+        }
+        self.channels.removeAll()
+    }
 
     func startTransmitting(_ uuid: UUID) throws {
         guard let channel = self.channels[uuid] else {
@@ -103,6 +125,7 @@ class MockPushToTalkManager: PushToTalkManager {
         }
         self.channels[channel.uuid] = channel
         try await self.api.join(channel: channel.uuid, token: Data(repeating: 0, count: 4))
+        channel.joined = true
         self.logger.info("[PTT] (\(channel.uuid)) Channel Registered")
     }
 
@@ -133,8 +156,20 @@ class PushToTalkManagerImpl: NSObject, PushToTalkManager {
         self.manager = try await .channelManager(delegate: self, restorationDelegate: self)
         self.logger.info("[PTT] Started")
         if let uuid = self.manager?.activeChannelUUID {
+            // TODO: What should we do when this happens?
             self.logger.info("[PTT] (\(uuid)) Existing channel on startup")
-            try self.stopTransmitting(uuid)
+            // try self.stopTransmitting(uuid)
+        }
+    }
+
+    func shutdown() throws {
+        guard let manager = self.manager else {
+            throw PushToTalkError.notStarted
+        }
+        self.logger.info("[PTT] Shutdown")
+        for (uuid, channel) in self.channels where channel.joined {
+            self.logger.info("[PTT] (\(uuid)) Leaving channel")
+            manager.leaveChannel(channelUUID: uuid)
         }
     }
 
@@ -183,14 +218,20 @@ class PushToTalkManagerImpl: NSObject, PushToTalkManager {
 
 // PTT Delegate Implementations.
 extension PushToTalkManagerImpl: PTChannelManagerDelegate, PTChannelRestorationDelegate {
+    // Called when we actually join the channel.
     func channelManager(_ channelManager: PTChannelManager,
                         didJoinChannel channelUUID: UUID,
                         reason: PTChannelJoinReason) {
         self.logger.info("[PTT] (\(channelUUID)) Joined channel: \(reason)")
+        guard let channel = self.channels[channelUUID] else {
+            self.logger.error("[PTT] (\(channelUUID)) Got join notification for untracked channel")
+            return
+        }
+        channel.joined = true
 
-        // Update our status on the PTT server.
+        // If we haven't got our token yet, cache this join request for when we do.
         guard let token = self.token else {
-            self.logger.error("Missing token")
+            self.logger.warning("[PTT] Missing token on join")
             self.pendingJoinRequests.append(channelUUID)
             return
         }
@@ -201,23 +242,32 @@ extension PushToTalkManagerImpl: PTChannelManagerDelegate, PTChannelRestorationD
                 try await manager.setServiceStatus(.ready, channelUUID: channelUUID)
                 self.logger.info("[PTT] (\(channelUUID)) Notified server of join")
             } catch {
-                self.logger.error("Failed to join channel on PTT server: \(error.localizedDescription)")
+                self.logger.error("[PTT] Failed to join channel on PTT server: \(error.localizedDescription)")
                 try await manager.setServiceStatus(.unavailable, channelUUID: channelUUID)
             }
         }
     }
 
+    /// Called when we leave a PTT channel.
     func channelManager(_ channelManager: PTChannelManager,
                         didLeaveChannel channelUUID: UUID,
                         reason: PTChannelLeaveReason) {
         self.logger.info("[PTT] (\(channelUUID)) Left channel: \(reason)")
         self.channels.removeValue(forKey: channelUUID)
+        Task(priority: .utility) {
+            do {
+                try await self.api.leave(channel: channelUUID)
+                self.logger.info("[PTT] (\(channelUUID)) Notified server of leave")
+            } catch {
+                self.logger.error("[PTT] (\(channelUUID) Failed to leave channel on PTT server: \(error.localizedDescription)")
+            }
+        }
     }
 
+    /// Called when a begin transmitting request (for us) goes through.
     func channelManager(_ channelManager: PTChannelManager,
                         channelUUID: UUID,
                         didBeginTransmittingFrom source: PTChannelTransmitRequestSource) {
-        self.logger.info("[PTT] (\(channelUUID)) Began transmitting")
         guard let channel = self.channels[channelUUID] else {
             self.logger.error("[PTT] (\(channelUUID)) Missing channel for beginTransmitting event")
             return
@@ -227,31 +277,47 @@ extension PushToTalkManagerImpl: PTChannelManagerDelegate, PTChannelRestorationD
             return
         }
 
-        // Send notification audio is transmitting.
+        // Send notification audio is transmitting to others.
         Task(priority: .medium) {
             do {
                 try await self.api.sentAudio(channel: channelUUID)
+                self.logger.info("[PTT] (\(channelUUID)) Notified server of transmission")
             } catch {
-                print("Failed to send audio notification for PTT: \(error.localizedDescription)")
+                self.logger.error("[PTT]  (\(channelUUID)) Failed to send audio notification for PTT: \(error.localizedDescription)")
             }
         }
 
         // Mark publication to start capturing audio data.
         publication.startProcessing()
+        self.logger.info("[PTT] (\(channelUUID)) Began transmitting")
     }
 
+    /// Called when the end transmitting request goes through.
     func channelManager(_ channelManager: PTChannelManager,
                         channelUUID: UUID,
                         didEndTransmittingFrom source: PTChannelTransmitRequestSource) {
-        self.logger.info("[PTT] (\(channelUUID)) Stopped transmitting")
+
         guard let channel = self.channels[channelUUID] else {
-            self.logger.error("[PTT] (\(channelUUID)) Missing channel for beginTransmitting event")
+            self.logger.error("[PTT] (\(channelUUID)) Missing channel for endTransmitting event")
             return
         }
         guard let publication = channel.publication else {
-            self.logger.error("[PTT] (\(channelUUID)) Missing publication for channel on beginTransmitting event")
+            self.logger.error("[PTT] (\(channelUUID)) Missing publication for channel on endTransmitting event")
             return
         }
+
+        // TODO: This might be more correct to handle in the session deactivate? Check this.
+        self.logger.info("[PTT] (\(channelUUID)) Stopped transmitting")
+        let notify = UIApplication.shared.beginBackgroundTask(withName: "StopTransmitting")
+        Task(priority: .utility) {
+            do {
+                try await self.api.stopAudio(channel: channelUUID)
+            } catch {
+                self.logger.error("[PTT] Failed to notify of stop talking")
+            }
+            await UIApplication.shared.endBackgroundTask(notify)
+        }
+
         // Mark publication to stop capturing audio data.
         publication.stopProcessing()
     }
@@ -279,13 +345,16 @@ extension PushToTalkManagerImpl: PTChannelManagerDelegate, PTChannelRestorationD
     func incomingPushResult(channelManager: PTChannelManager,
                             channelUUID: UUID,
                             pushPayload: [String: Any]) -> PTPushResult {
-        if let activeSpeaker = pushPayload["activespeaker"] as? String {
-            self.logger.info("[PTT] Active Speaker: \(activeSpeaker)")
-            return .activeRemoteParticipant(PTParticipant(name: activeSpeaker, image: nil))
-        } else {
+        guard let activeSpeaker = pushPayload["activeSpeaker"] else {
             self.logger.error("[PTT] Unknown PTT notification received: \(pushPayload)")
             return .leaveChannel
         }
+        guard let name = activeSpeaker as? String else {
+            self.logger.info("No active speaker? Apple suggest leaving the channel here. I'm not sure why...")
+            return .leaveChannel
+        }
+        self.logger.info("[PTT] Active Speaker Updated: \(activeSpeaker)")
+        return .activeRemoteParticipant(PTParticipant(name: name, image: nil))
     }
 
     func channelManager(_ channelManager: PTChannelManager, didActivate audioSession: AVAudioSession) {

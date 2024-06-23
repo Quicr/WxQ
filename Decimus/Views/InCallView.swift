@@ -385,6 +385,14 @@ extension InCallView {
                 Self.logger.error("Error while stopping media: \(error)", alert: true)
             }
 
+            if let ptt = self.ptt {
+                do {
+                    try ptt.shutdown()
+                } catch {
+                    Self.logger.error("Error while stopping PTT: \(error)", alert: true)
+                }
+            }
+
             do {
                 try controller?.disconnect()
             } catch {
