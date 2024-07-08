@@ -13,7 +13,7 @@ struct TransportConfigSettings: View {
     private let maxWindowKiB = 4096
 
     var body: some View {
-#if !os(tvOS)
+        #if !os(tvOS)
         VStack {
             HStack {
                 Stepper {
@@ -29,7 +29,7 @@ struct TransportConfigSettings: View {
                 }
             }
         }
-#endif
+        #endif
         HStack {
             Text("Use Reset and Wait")
             Toggle(isOn: self.$useResetWaitCC) {}
@@ -39,13 +39,19 @@ struct TransportConfigSettings: View {
             Toggle(isOn: self.$useBBR) {}
         }
         LabeledContent("Time Queue RX Size") {
-            TextField("", value: self.$timeQueueTTL, format: .number)
+            NumberView(value: self.$timeQueueTTL,
+                       formatStyle: IntegerFormatStyle<Int>.number.grouping(.never),
+                       name: "Size")
         }
         LabeledContent("Chunk Size") {
-            TextField("", value: self.$chunkSize, format: .number)
+            NumberView(value: self.$chunkSize,
+                       formatStyle: IntegerFormatStyle<UInt32>.number.grouping(.never),
+                       name: "Size")
         }
         LabeledContent("Limit Bypass Priority >= value") {
-            TextField("", value: self.$quicPriorityLimit, format: .number)
+            NumberView(value: self.$quicPriorityLimit,
+                       formatStyle: IntegerFormatStyle<UInt8>.number.grouping(.never),
+                       name: "Priority")
         }
         HStack {
             Text("Capture QUICR logs")

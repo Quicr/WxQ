@@ -16,8 +16,7 @@ enum H264PublicationError: LocalizedError {
 class H264Publication: NSObject, AVCaptureDevicePublication, FrameListener {
     private static let logger = DecimusLogger(H264Publication.self)
 
-    private let measurement: VideoPublicationMeasurement?
-    private let metricsSubmitter: MetricsSubmitter?
+    private let measurement: MeasurementRegistration<VideoPublicationMeasurement>?
 
     let namespace: QuicrNamespace
     internal weak var publishObjectDelegate: QPublishObjectDelegateObjC?
@@ -44,9 +43,9 @@ class H264Publication: NSObject, AVCaptureDevicePublication, FrameListener {
         self.publishObjectDelegate = publishDelegate
         self.granularMetrics = granularMetrics
         self.codec = config
-        self.metricsSubmitter = metricsSubmitter
         if let metricsSubmitter = metricsSubmitter {
-            self.measurement = .init(namespace: namespace)
+            let measurement = H264Publication.VideoPublicationMeasurement(namespace: namespace)
+            self.measurement = .init(measurement: measurement, submitter: metricsSubmitter)
         } else {
             self.measurement = nil
         }
@@ -64,7 +63,7 @@ class H264Publication: NSObject, AVCaptureDevicePublication, FrameListener {
                 let now = Date.now
                 let age = now.timeIntervalSince(captureDate)
                 Task(priority: .utility) {
-                    await measurement.encoded(age: age, timestamp: now)
+                    await measurement.measurement.encoded(age: age, timestamp: now)
                 }
             }
 
@@ -83,33 +82,16 @@ class H264Publication: NSObject, AVCaptureDevicePublication, FrameListener {
                 } else {
                     age = nil
                 }
-                await measurement.sentFrame(bytes: UInt64(bytes),
-                                            timestamp: presentationTimestamp.seconds,
-                                            age: age,
-                                            metricsTimestamp: now)
+                await measurement.measurement.sentFrame(bytes: UInt64(bytes),
+                                                        timestamp: presentationTimestamp.seconds,
+                                                        age: age,
+                                                        metricsTimestamp: now)
             }
         }
         self.encoder.setCallback(onEncodedData)
         super.init()
 
         Self.logger.info("Registered H264 publication for source \(sourceID)")
-
-        if let metricsSubmitter = self.metricsSubmitter,
-           let measurement = self.measurement {
-            Task(priority: .utility) {
-                await metricsSubmitter.register(measurement: measurement)
-            }
-        }
-    }
-
-    deinit {
-        if let measurement = self.measurement,
-           let submitter = self.metricsSubmitter {
-            let id = measurement.id
-            Task(priority: .utility) {
-                await submitter.unregister(id: id)
-            }
-        }
     }
 
     func prepare(_ sourceID: SourceIDType!, qualityProfile: String!, transportMode: UnsafeMutablePointer<TransportMode>!) -> Int32 {
@@ -161,13 +143,13 @@ class H264Publication: NSObject, AVCaptureDevicePublication, FrameListener {
         let date: Date? = self.granularMetrics ? captureTime : nil
         let now = Date.now
         Task(priority: .utility) {
-            await measurement.sentPixels(sent: pixels, timestamp: date)
+            await measurement.measurement.sentPixels(sent: pixels, timestamp: date)
             if let date = date {
                 // TODO: This age is probably useless.
                 let age = now.timeIntervalSince(captureTime)
-                await measurement.age(age: age,
-                                      presentationTimestamp: presentationTimestamp,
-                                      metricsTimestamp: date)
+                await measurement.measurement.age(age: age,
+                                                  presentationTimestamp: presentationTimestamp,
+                                                  metricsTimestamp: date)
             }
         }
     }

@@ -45,6 +45,8 @@ typedef void(*CantinaLogCallback)(uint8_t, NSString*, bool);
 
 -(struct Metrics)getMetrics;
 
+-(size_t)getCurrentDepth;
+
 @end
 
 #endif

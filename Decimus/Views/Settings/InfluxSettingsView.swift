@@ -25,10 +25,9 @@ struct InfluxSettingsView: View {
                 }
 
                 LabeledContent("Interval (s)") {
-                    TextField(
-                        "Interval (s)",
-                        value: $influxConfig.value.intervalSecs,
-                        format: .number)
+                    NumberView(value: $influxConfig.value.intervalSecs,
+                               formatStyle: IntegerFormatStyle<Int>.number.grouping(.never),
+                               name: "Interval (s)")
                 }
 
                 LabeledContent("URL") {

@@ -56,7 +56,7 @@
     qControllerGW.logger->debug << "QControllerGW - dealloc" << std::flush;
 }
 
--(int) connect: (NSString *) endpointID relay:(NSString *)remoteAddress port:(UInt16)remotePort protocol:(UInt8)protocol chunk_size:(UInt32)chunkSize config:(TransportConfig)config useParentLogger:(bool)useParentLogger
+-(int) connect: (NSString *) endpointID relay:(NSString *)remoteAddress port:(UInt16)remotePort protocol:(UInt8)protocol chunk_size:(UInt32)chunkSize config:(TransportConfig)config useParentLogger:(bool)useParentLogger encrypt:(bool)encrypt
 {
     try {
         qtransport::TransportConfig tconfig;
@@ -71,12 +71,12 @@
         
         if (config.quic_qlog_path != nullptr) {
             qlog_path = config.quic_qlog_path;
-            tconfig.quic_qlog_path = qlog_path.c_str();
+            tconfig.quic_qlog_path = const_cast<char *>(qlog_path.c_str());
         } else {
             tconfig.quic_qlog_path = nullptr;
         }
             
-        return qControllerGW.connect(std::string([endpointID UTF8String]), std::string([remoteAddress UTF8String]), remotePort, protocol, chunkSize, tconfig, useParentLogger);
+        return qControllerGW.connect(std::string([endpointID UTF8String]), std::string([remoteAddress UTF8String]), remotePort, protocol, chunkSize, tconfig, useParentLogger, encrypt);
     } catch(const std::exception& e) {
         qControllerGW.logger->error << "Failed to connect: " << e.what() << std::flush;
         return -1;
@@ -215,9 +215,10 @@ int QControllerGW::connect(const std::string endpoint_id,
                            std::uint16_t protocol,
                            size_t chunk_size,
                            qtransport::TransportConfig config,
-                           bool useParentLogger)
+                           bool useParentLogger,
+                           bool encrypt)
 {
-    qController = std::make_unique<qmedia::QController>(subscriberDelegate, publisherDelegate, useParentLogger ? logger : nullptr);
+    qController = std::make_unique<qmedia::QController>(subscriberDelegate, publisherDelegate, useParentLogger ? logger : nullptr, false, encrypt ? std::optional<sframe::CipherSuite>(qmedia::Default_Cipher_Suite) : std::nullopt);
     if (qController == nullptr)
         return -1;
 

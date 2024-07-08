@@ -92,7 +92,7 @@ actor InfluxMetricsSubmitter: MetricsSubmitter {
         do {
             try await client.makeWriteAPI().write(points: points, responseQueue: .global(qos: .utility))
         } catch {
-            Self.logger.error("Failed to write: \(error)")
+            Self.logger.warning("Failed to write metrics: \(error)")
         }
     }
 

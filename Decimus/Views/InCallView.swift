@@ -223,7 +223,7 @@ extension InCallView {
         private(set) var captureManager: CaptureManager?
         private let config: CallConfig
         private var appMetricTimer: Task<(), Error>?
-        private var measurement: _Measurement?
+        private var measurement: MeasurementRegistration<_Measurement>?
         private var submitter: MetricsSubmitter?
         private var audioCapture = false
         private var videoCapture = false
@@ -243,7 +243,7 @@ extension InCallView {
             do {
                 self.engine = try .init()
             } catch {
-                Self.logger.critical("Failed to create AudioEngine: \(error.localizedDescription)")
+                Self.logger.error("Failed to create AudioEngine: \(error.localizedDescription)")
                 self.engine = nil
             }
             let tags: [String: String] = [
@@ -268,14 +268,15 @@ extension InCallView {
             if influxConfig.value.submit {
                 let influx = InfluxMetricsSubmitter(config: influxConfig.value, tags: tags)
                 submitter = influx
-                self.measurement = .init()
+                let measurement = _Measurement()
+                self.measurement = .init(measurement: measurement, submitter: influx)
                 if influxConfig.value.realtime {
                     // Application metrics timer.
                     self.appMetricTimer = .init(priority: .utility) { [weak self] in
                         while !Task.isCancelled,
                               let self = self {
                             let usage = try cpuUsage()
-                            await self.measurement?.recordCpuUsage(cpuUsage: usage, timestamp: Date.now)
+                            await self.measurement?.measurement.recordCpuUsage(cpuUsage: usage, timestamp: Date.now)
 
                             await self.submitter?.submit()
                             try? await Task.sleep(for: .seconds(influxConfig.value.intervalSecs), tolerance: .seconds(1))
@@ -288,7 +289,7 @@ extension InCallView {
                 self.captureManager = try .init(metricsSubmitter: submitter,
                                                 granularMetrics: influxConfig.value.granular)
             } catch {
-                Self.logger.error("Failed to create camera manager: \(error.localizedDescription)", alert: true)
+                Self.logger.error("Failed to create camera manager: \(error.localizedDescription)")
             }
 
             if let captureManager = self.captureManager,
@@ -311,24 +312,7 @@ extension InCallView {
                         }
                     }
                 } catch {
-                    Self.logger.error("CallController failed: \(error.localizedDescription)", alert: true)
-                }
-            }
-
-            if let submitter = self.submitter,
-               let measurement = self.measurement {
-                Task(priority: .utility) {
-                    await submitter.register(measurement: measurement)
-                }
-            }
-        }
-
-        deinit {
-            if let measurement = self.measurement,
-               let submitter = self.submitter {
-                let id = measurement.id
-                Task(priority: .utility) {
-                    await submitter.unregister(id: id)
+                    Self.logger.error("CallController failed: \(error.localizedDescription)")
                 }
             }
         }
@@ -338,7 +322,7 @@ extension InCallView {
                 return false
             }
             if !controller.connected() {
-                Self.logger.error("Connection to relay disconnected", alert: true)
+                Self.logger.error("Connection to relay disconnected")
                 return false
             }
             return true
@@ -347,8 +331,11 @@ extension InCallView {
         func join() async -> Bool {
             do {
                 try await self.controller?.connect(config: config)
+            } catch CallError.failedToConnect(let errorCode) {
+                Self.logger.error("Failed to connect to relay: (\(errorCode))")
+                return false
             } catch {
-                Self.logger.error("Failed to connect to call: \(error.localizedDescription)", alert: true)
+                Self.logger.error("CallController failed due to unknown error: \(error.localizedDescription)")
                 return false
             }
 
@@ -382,21 +369,21 @@ extension InCallView {
                     self.audioCapture = false
                 }
             } catch {
-                Self.logger.error("Error while stopping media: \(error)", alert: true)
+                Self.logger.error("Error while stopping media: \(error)")
             }
 
             if let ptt = self.ptt {
                 do {
                     try ptt.shutdown()
                 } catch {
-                    Self.logger.error("Error while stopping PTT: \(error)", alert: true)
+                    Self.logger.error("Error while stopping PTT: \(error)")
                 }
             }
 
             do {
                 try controller?.disconnect()
             } catch {
-                Self.logger.error("Error while leaving call: \(error)", alert: true)
+                Self.logger.error("Error while leaving call: \(error)")
             }
         }
 

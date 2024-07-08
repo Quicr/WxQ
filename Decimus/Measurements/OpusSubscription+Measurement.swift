@@ -56,5 +56,9 @@ extension OpusSubscription {
             self.dropped += UInt64(dropped)
             record(field: "dropped", value: self.dropped as AnyObject, timestamp: timestamp)
         }
+
+        func depth(depthMs: Int, timestamp: Date) {
+            record(field: "currentDepth", value: TimeInterval(depthMs) / 1000.0, timestamp: timestamp)
+        }
     }
 }

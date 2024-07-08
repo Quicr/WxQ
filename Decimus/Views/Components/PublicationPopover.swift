@@ -44,7 +44,7 @@ struct PublicationPopover: View {
                 do {
                     try self.publications.fetch()
                 } catch {
-                    self.logger.error("Failed to fetch publications: \(error.localizedDescription)", alert: true)
+                    self.logger.error("Failed to fetch publications: \(error.localizedDescription)")
                 }
                 self.updateToggles()
             }

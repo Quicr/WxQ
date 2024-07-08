@@ -8,9 +8,7 @@ struct DecimusApp: App {
         WindowGroup {
             ZStack {
                 ConfigCallView()
-                #if DEBUG
                 AlertView()
-                #endif
             }
             .preferredColorScheme(.dark)
             .removeTitleBar()

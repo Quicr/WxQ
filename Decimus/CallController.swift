@@ -34,7 +34,9 @@ class CallController: QControllerGWObjC<PublisherDelegate, SubscriberDelegate> {
          conferenceId: UInt32) throws {
         self.config = config
         super.init { level, msg, alert in
-            CallController.logger.log(level: DecimusLogger.LogLevel(rawValue: level)!, msg!, alert: alert)
+            let level: DecimusLogger.LogLevel = .init(rawValue: level) ?? .error
+            guard let msg = msg else { return }
+            CallController.logger.log(level: level, msg, alert: alert)
         }
         self.subscriberDelegate = SubscriberDelegate(submitter: metricsSubmitter,
                                                      config: config,
@@ -83,7 +85,8 @@ class CallController: QControllerGWObjC<PublisherDelegate, SubscriberDelegate> {
                                       protocol: config.connectionProtocol.rawValue,
                                       chunk_size: self.config.chunkSize,
                                       config: transportConfig,
-                                      useParentLogger: self.config.quicrLogs)
+                                      useParentLogger: self.config.quicrLogs,
+                                      encrypt: self.config.doSFrame)
             guard error == .zero else {
                 throw CallError.failedToConnect(error)
             }

@@ -14,8 +14,7 @@ class OpusPublication: Publication {
 
     private let encoder: LibOpusEncoder
     private let buffer: UnsafeMutablePointer<TPCircularBuffer> = .allocate(capacity: 1)
-    private let measurement: OpusPublicationMeasurement?
-    private let metricsSubmitter: MetricsSubmitter?
+    private let measurement: MeasurementRegistration<OpusPublicationMeasurement>?
     private let opusWindowSize: OpusWindowSize
     private let reliable: Bool
     private let granularMetrics: Bool
@@ -49,9 +48,9 @@ class OpusPublication: Publication {
         self.namespace = namespace
         self.publishObjectDelegate = publishDelegate
         self.engine = engine
-        self.metricsSubmitter = metricsSubmitter
         if let metricsSubmitter = metricsSubmitter {
-            self.measurement = .init(namespace: namespace)
+            self.measurement = .init(measurement: OpusPublicationMeasurement(namespace: namespace),
+                                     submitter: metricsSubmitter)
         } else {
             self.measurement = nil
         }
@@ -88,15 +87,6 @@ class OpusPublication: Publication {
 
         // Register our block.
         try engine.registerSinkBlock(identifier: namespace, block: block)
-
-        // Metrics registration (after any possible throws)
-        if let metricsSubmitter = self.metricsSubmitter,
-           let measurement = self.measurement {
-            Task(priority: .utility) {
-                await metricsSubmitter.register(measurement: measurement)
-            }
-        }
-
         Self.logger.info("Registered OPUS publication for source \(sourceID)")
     }
 
@@ -104,17 +94,10 @@ class OpusPublication: Publication {
         do {
             try engine.unregisterSinkBlock(identifier: self.namespace)
         } catch {
-            Self.logger.critical("Failed to unregister sink block: \(error.localizedDescription)")
+            Self.logger.error("Failed to unregister sink block: \(error.localizedDescription)")
         }
         self.encodeTask?.cancel()
         TPCircularBufferCleanup(self.buffer)
-        if let measurement = self.measurement,
-           let metricsSubmitter = self.metricsSubmitter {
-            let id = measurement.id
-            Task(priority: .utility) {
-                await metricsSubmitter.unregister(id: id)
-            }
-        }
     }
 
     func prepare(_ sourceID: SourceIDType!, qualityProfile: String!, transportMode: UnsafeMutablePointer<TransportMode>!) -> Int32 {
@@ -130,7 +113,7 @@ class OpusPublication: Publication {
         if let measurement = self.measurement {
             let now: Date? = granularMetrics ? .now : nil
             Task(priority: .utility) {
-                await measurement.publishedBytes(sentBytes: data.count, timestamp: now)
+                await measurement.measurement.publishedBytes(sentBytes: data.count, timestamp: now)
             }
         }
         self.publishObjectDelegate?.publishObject(self.namespace, data: data, group: true)
@@ -163,11 +146,11 @@ class OpusPublication: Publication {
     }
 
     func publish(_ flag: Bool) {}
-    
+
     func startProcessing() {
         self.transmit.store(true, ordering: .releasing)
     }
-    
+
     func stopProcessing() {
         self.transmit.store(false, ordering: .releasing)
     }

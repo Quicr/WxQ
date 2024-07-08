@@ -67,7 +67,7 @@ struct SubscriptionPopover: View {
                 do {
                     try self.switchingSets.fetch()
                 } catch {
-                    self.logger.error("Failed to fetch switching sets: \(error.localizedDescription)", alert: true)
+                    self.logger.error("Failed to fetch switching sets: \(error.localizedDescription)")
                 }
                 self.updateToggles()
             }

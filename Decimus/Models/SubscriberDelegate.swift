@@ -30,7 +30,7 @@ class SubscriberDelegate: QSubscriberDelegateObjC {
                                       profileSet: profileSet,
                                       metricsSubmitter: self.submitter)
         } catch {
-            Self.logger.error("Failed to allocate subscription: \(error)", alert: true)
+            Self.logger.error("Failed to allocate subscription: \(error)")
             return nil
         }
     }

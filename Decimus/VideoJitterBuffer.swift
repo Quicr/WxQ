@@ -25,8 +25,7 @@ class VideoJitterBuffer {
     private static let logger = DecimusLogger(VideoJitterBuffer.self)
     private let minDepth: TimeInterval
     private var buffer: CMBufferQueue
-    private let measurement: VideoJitterBufferMeasurement?
-    private let metricsSubmitter: MetricsSubmitter?
+    private let measurement: MeasurementRegistration<VideoJitterBufferMeasurement>?
     private var play: Bool = false
     private var playToken: CMBufferQueueTriggerToken?
     private var lastSequenceRead = ManagedAtomic<UInt64>(0)
@@ -82,34 +81,18 @@ class VideoJitterBuffer {
             }
         }
         self.buffer = try .init(capacity: capacity, handlers: handlers)
-        self.metricsSubmitter = metricsSubmitter
-        if metricsSubmitter != nil {
-            self.measurement = .init(namespace: namespace)
+        if let metricsSubmitter = metricsSubmitter {
+            let measurement = VideoJitterBufferMeasurement(namespace: namespace)
+            self.measurement = .init(measurement: measurement, submitter: metricsSubmitter)
         } else {
             self.measurement = nil
         }
+
         self.minDepth = minDepth
         let minDepthCM = CMTime(value: CMTimeValue(minDepth), timescale: 1)
         self.playToken = try self.buffer.installTrigger(condition: .whenDurationBecomesGreaterThanOrEqualTo(minDepthCM), { _ in
             self.play = true
         })
-
-        if let metricsSubmitter = self.metricsSubmitter,
-           let measurement = self.measurement {
-            Task(priority: .utility) {
-                await metricsSubmitter.register(measurement: measurement)
-            }
-        }
-    }
-
-    deinit {
-        if let measurement = self.measurement,
-           let metricsSubmitter = self.metricsSubmitter {
-            let id = measurement.id
-            Task(priority: .utility) {
-                await metricsSubmitter.unregister(id: id)
-            }
-        }
     }
 
     /// Write a video frame into the jitter buffer.
@@ -130,7 +113,7 @@ class VideoJitterBuffer {
         if let measurement = self.measurement {
             let now: Date = .now
             Task(priority: .utility) {
-                await measurement.write(timestamp: now)
+                await measurement.measurement.write(timestamp: now)
             }
         }
     }
@@ -160,16 +143,16 @@ class VideoJitterBuffer {
         guard let oldest = self.buffer.dequeue() else {
             if let measurement = self.measurement {
                 Task(priority: .utility) {
-                    await measurement.currentDepth(depth: depth, timestamp: now)
-                    await measurement.underrun(timestamp: now)
+                    await measurement.measurement.currentDepth(depth: depth, timestamp: now)
+                    await measurement.measurement.underrun(timestamp: now)
                 }
             }
             return nil
         }
         if let measurement = self.measurement {
             Task(priority: .utility) {
-                await measurement.currentDepth(depth: depth, timestamp: now)
-                await measurement.read(timestamp: now)
+                await measurement.measurement.currentDepth(depth: depth, timestamp: now)
+                await measurement.measurement.read(timestamp: now)
             }
         }
         let sample = oldest as! DecimusVideoFrame
@@ -205,7 +188,7 @@ class VideoJitterBuffer {
         let waitTime = targetDate.timeIntervalSince(from) + self.minDepth
         if let measurement = self.measurement {
             Task(priority: .utility) {
-                await measurement.waitTime(value: waitTime, timestamp: from)
+                await measurement.measurement.waitTime(value: waitTime, timestamp: from)
             }
         }
         return waitTime

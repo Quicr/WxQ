@@ -12,6 +12,8 @@ struct ManifestSettingsView: View {
     private var manifestConfig: AppStorageWrapper<ManifestServerConfig> = .init(value: .init())
 
     @State private var configs: [String] = []
+    @State private var error: String?
+    @State private var showProgressView = false
 
     var body: some View {
         Section("Manifest") {
@@ -22,43 +24,46 @@ struct ManifestSettingsView: View {
                             Text(scheme.rawValue)
                         }
                     }
-                    .onChange(of: manifestConfig.value.scheme) { _ in
-                        ManifestController.shared.setServer(config: manifestConfig.value)
-                        Task {
-                            self.configs = await getConfigs()
-                        }
-                    }
                     .pickerStyle(.segmented)
                 }
 
                 LabeledContent("Address") {
                     TextField("manifest_address", text: $manifestConfig.value.url, prompt: Text("127.0.0.1"))
                         .keyboardType(.URL)
-                        .onChange(of: manifestConfig.value.url) { _ in
-                            ManifestController.shared.setServer(config: manifestConfig.value)
-                            Task {
-                                self.configs = await getConfigs()
-                            }
-                        }
                 }
 
                 LabeledContent("Port") {
-                    TextField("manifest_port", value: $manifestConfig.value.port, format: .number.grouping(.never))
-                        .keyboardType(.numberPad)
-                        .onChange(of: manifestConfig.value.port) { _ in
-                            ManifestController.shared.setServer(config: manifestConfig.value)
-                            Task {
-                                self.configs = await getConfigs()
-                            }
-                        }
+                    NumberView(value: $manifestConfig.value.port,
+                               formatStyle: IntegerFormatStyle<Int>.number.grouping(.never),
+                               name: "Port")
                 }
-                Picker("Config", selection: $manifestConfig.value.config) {
-                    ForEach(self.configs, id: \.self) { config in
-                        Text(config)
+
+                HStack {
+                    Picker("Config", selection: $manifestConfig.value.config) {
+                        ForEach(self.configs, id: \.self) { config in
+                            Text(config)
+                        }
+                    }
+                    Spacer()
+                    Button {
+                        Task {
+                            self.configs = await self.getConfigs()
+                        }
+                    } label: {
+                        if self.showProgressView {
+                            ProgressView()
+                        } else {
+                            Text("Refresh")
+                        }
                     }
                 }
-                .onChange(of: manifestConfig.value.config) { _ in
-                    ManifestController.shared.setServer(config: manifestConfig.value)
+                if let error = self.error {
+                    HStack {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                        Spacer()
+                    }
                 }
             }
             .formStyle(.columns)
@@ -66,15 +71,24 @@ struct ManifestSettingsView: View {
         .task {
             self.configs = await getConfigs()
         }
+        .onChange(of: self.manifestConfig.value) {
+            ManifestController.shared.setServer(config: self.manifestConfig.value)
+            Task {
+                self.configs = await self.getConfigs()
+            }
+        }
     }
 
     private func getConfigs() async -> [String] {
+        self.showProgressView = true
+        defer { self.showProgressView = false }
         do {
             let configs = try await ManifestController.shared.getConfigs()
+            self.error = nil
             let sorted = configs.sorted { $0.configProfile < $1.configProfile }
             return sorted.reduce(into: [], { $0.append($1.configProfile) })
         } catch {
-            print("Failed to fetch manifest configs: \(error.localizedDescription)")
+            self.error = error.localizedDescription
             return []
         }
     }

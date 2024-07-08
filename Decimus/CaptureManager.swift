@@ -51,8 +51,7 @@ class CaptureManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private let queue: DispatchQueue = .init(label: "com.cisco.quicr.Decimus.CaptureManager", qos: .userInteractive)
     private let notifier: NotificationCenter = .default
     private var observer: NSObjectProtocol?
-    private let measurement: CaptureManagerMeasurement?
-    private let metricsSubmitter: MetricsSubmitter?
+    private let measurement: MeasurementRegistration<CaptureManagerMeasurement>?
     private let granularMetrics: Bool
     private let warmupTime: TimeInterval = 0.75
 
@@ -63,27 +62,13 @@ class CaptureManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         session = .init()
         session.automaticallyConfiguresApplicationAudioSession = false
         self.granularMetrics = granularMetrics
-        self.metricsSubmitter = metricsSubmitter
         if let metricsSubmitter = metricsSubmitter {
             let measurement = CaptureManager.CaptureManagerMeasurement()
-            self.measurement = measurement
-            Task(priority: .utility) {
-                await metricsSubmitter.register(measurement: measurement)
-            }
+            self.measurement = .init(measurement: measurement, submitter: metricsSubmitter)
         } else {
             self.measurement = nil
         }
         super.init()
-    }
-
-    deinit {
-        if let measurement = self.measurement,
-           let metricsSubmitter = self.metricsSubmitter {
-            let id = measurement.id
-            Task(priority: .utility) {
-                await metricsSubmitter.unregister(id: id)
-            }
-        }
     }
 
     func devices() throws -> [AVCaptureDevice] {
@@ -123,10 +108,10 @@ class CaptureManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     @Sendable
     private nonisolated func onStartFailure(notification: Notification) {
         guard let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError else {
-            Self.logger.error("AVCaptureSession failed for unknown reason", alert: true)
+            Self.logger.error("AVCaptureSession failed for unknown reason")
             return
         }
-        Self.logger.error("AVCaptureSession failure: \(error.localizedDescription)", alert: true)
+        Self.logger.error("AVCaptureSession failure: \(error.localizedDescription)")
     }
 
     func stopCapturing() throws {
@@ -332,8 +317,8 @@ class CaptureManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         if let measurement = self.measurement {
             let timestamp = sampleBuffer.presentationTimeStamp.seconds
             Task(priority: .utility) {
-                await measurement.capturedFrame(frameTimestamp: timestamp,
-                                                metricsTimestamp: self.granularMetrics ? now : nil)
+                await measurement.measurement.capturedFrame(frameTimestamp: timestamp,
+                                                            metricsTimestamp: self.granularMetrics ? now : nil)
             }
         }
 
@@ -357,7 +342,7 @@ class CaptureManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
         guard let measurement = self.measurement else { return }
         let now: Date? = self.granularMetrics ? Date.now : nil
         Task(priority: .utility) {
-            await measurement.droppedFrame(timestamp: now)
+            await measurement.measurement.droppedFrame(timestamp: now)
         }
     }
 }

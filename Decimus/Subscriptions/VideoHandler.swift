@@ -24,7 +24,7 @@ class VideoHandler: CustomStringConvertible {
 
     private var decoder: VTDecoder?
     private let participants: VideoParticipants
-    private let measurement: VideoHandlerMeasurement?
+    private let measurement: MeasurementRegistration<VideoHandlerMeasurement>?
     private var lastGroup: UInt32?
     private var lastObject: UInt16?
     private let namegate = SequentialObjectBlockingNameGate()
@@ -88,10 +88,7 @@ class VideoHandler: CustomStringConvertible {
         self.participants = participants
         if let metricsSubmitter = metricsSubmitter {
             let measurement = VideoHandler.VideoHandlerMeasurement(namespace: namespace)
-            Task(priority: .utility) {
-                await metricsSubmitter.register(measurement: measurement)
-            }
-            self.measurement = measurement
+            self.measurement = .init(measurement: measurement, submitter: metricsSubmitter)
         } else {
             self.measurement = nil
         }
@@ -134,13 +131,6 @@ class VideoHandler: CustomStringConvertible {
     deinit {
         if self.simulreceive != .enable {
             self.participants.removeParticipant(identifier: namespace)
-        }
-        if let metricsSubmitter = self.metricsSubmitter,
-           let measurement = self.measurement {
-            let id = measurement.id
-            Task(priority: .utility) {
-                await metricsSubmitter.unregister(id: id)
-            }
         }
         self.dequeueTask?.cancel()
     }
@@ -203,11 +193,11 @@ class VideoHandler: CustomStringConvertible {
                 if let captureDate = frame.captureDate,
                    let now = now {
                     let age = now.timeIntervalSince(captureDate)
-                    await measurement.age(age: age, timestamp: now)
+                    await measurement.measurement.age(age: age, timestamp: now)
                 }
-                await measurement.receivedFrame(timestamp: now, idr: frame.objectId == 0)
+                await measurement.measurement.receivedFrame(timestamp: now, idr: frame.objectId == 0)
                 let bytes = frame.samples.reduce(into: 0) { $0 += $1.totalSampleSize }
-                await measurement.receivedBytes(received: bytes, timestamp: now)
+                await measurement.measurement.receivedBytes(received: bytes, timestamp: now)
             }
         }
     }
@@ -357,7 +347,7 @@ class VideoHandler: CustomStringConvertible {
            self.jitterBufferConfig.mode != .layer {
             let now: Date? = self.granularMetrics ? .now : nil
             Task(priority: .utility) {
-                await measurement.decodedFrame(timestamp: now)
+                await measurement.measurement.decodedFrame(timestamp: now)
             }
         }
 
@@ -385,7 +375,7 @@ class VideoHandler: CustomStringConvertible {
                     let now = Date.now
                     let timestamp = sample.presentationTimeStamp.seconds
                     Task(priority: .background) {
-                        await measurement.enqueuedFrame(frameTimestamp: timestamp, metricsTimestamp: now)
+                        await measurement.measurement.enqueuedFrame(frameTimestamp: timestamp, metricsTimestamp: now)
                     }
                 }
             } catch {

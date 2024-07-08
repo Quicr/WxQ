@@ -54,7 +54,8 @@ static SubscriptionState const SubscriptionStatePaused = 3;
                 protocol:(UInt8)protocol
                 chunk_size:(UInt32)chunkSize
                 config:(TransportConfig)config
-                useParentLogger:(bool)useParentLogger;
+                useParentLogger:(bool)useParentLogger
+                encrypt:(bool)encrypt;
 -(void) disconnect;
 -(bool) connected;
 -(void) updateManifest: (NSString*)manifest;

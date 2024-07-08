@@ -194,7 +194,7 @@ class VTEncoder: VideoEncoder {
         let flushError = VTCompressionSessionCompleteFrames(encoder,
                                                             untilPresentationTimeStamp: .init())
         if flushError != .zero {
-            Self.logger.error("Encoder failed to flush", alert: true)
+            Self.logger.warning("Encoder failed to flush: \(flushError)", alert: true)
         }
 
         VTCompressionSessionInvalidate(encoder)

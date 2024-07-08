@@ -45,7 +45,7 @@ class VideoSubscription: QSubscriptionDelegateObjC {
     private var lastSimulreceiveLabel: String?
     private var lastHighlight: QuicrNamespace?
     private var lastDiscontinous = false
-    private let measurement: VideoSubscriptionMeasurement?
+    private let measurement: MeasurementRegistration<VideoSubscriptionMeasurement>?
     private let variances: VarianceCalculator
     private let decodedVariances: VarianceCalculator
     private var formats: [QuicrNamespace: CMFormatDescription?] = [:]
@@ -71,7 +71,12 @@ class VideoSubscription: QSubscriptionDelegateObjC {
         self.sourceId = sourceId
         self.participants = participants
         self.submitter = metricsSubmitter
-        self.measurement = self.submitter != nil ? .init(source: self.sourceId) : nil
+        if let submitter = metricsSubmitter {
+            let measurement = VideoSubscriptionMeasurement(source: self.sourceId)
+            self.measurement = .init(measurement: measurement, submitter: submitter)
+        } else {
+            self.measurement = nil
+        }
         self.videoBehaviour = videoBehaviour
         self.reliable = reliable
         self.granularMetrics = granularMetrics
@@ -107,7 +112,7 @@ class VideoSubscription: QSubscriptionDelegateObjC {
         self.profiles = createdProfiles
         for namespace in createdProfiles.keys {
             self.formats[namespace] = nil
-            try makeHandler(namespace: namespace)
+            self.videoHandlers[namespace] = try makeHandler(namespace: namespace)
         }
 
         // Make task for cleaning up video handlers.
@@ -134,13 +139,6 @@ class VideoSubscription: QSubscriptionDelegateObjC {
                 try? await Task.sleep(for: .seconds(self.cleanupTimer),
                                       tolerance: .seconds(self.cleanupTimer),
                                       clock: .continuous)
-            }
-        }
-
-        if let metricsSubmitter = self.submitter,
-           let measurement = self.measurement {
-            Task(priority: .utility) {
-                await metricsSubmitter.register(measurement: measurement)
             }
         }
 
@@ -199,9 +197,9 @@ class VideoSubscription: QSubscriptionDelegateObjC {
             if self.granularMetrics,
                let measurement = self.measurement {
                 Task(priority: .utility) {
-                    await measurement.reportTimestamp(namespace: name,
-                                                      timestamp: timestamp,
-                                                      at: now)
+                    await measurement.measurement.reportTimestamp(namespace: name,
+                                                                  timestamp: timestamp,
+                                                                  at: now)
                 }
             }
         } else {
@@ -213,22 +211,30 @@ class VideoSubscription: QSubscriptionDelegateObjC {
             startRenderTask()
         }
 
-        self.handlerLock.withLock {
-            self.lastUpdateTimes[name] = now
-            do {
-                if self.videoHandlers[name] == nil {
-                    try makeHandler(namespace: name)
+        let handler: VideoHandler
+        do {
+            handler = try self.handlerLock.withLock {
+                self.lastUpdateTimes[name] = now
+                let lookup = self.videoHandlers[name]
+                guard let lookup = lookup else {
+                    let handler = try makeHandler(namespace: name)
+                    self.videoHandlers[name] = handler
+                    return handler
                 }
-                guard let handler = self.videoHandlers[name] else {
-                    throw "Unknown namespace"
-                }
-                if let diff = self.timestampTimeDiff {
-                    handler.setTimeDiff(diff: diff)
-                }
-                try handler.submitEncodedData(frame)
-            } catch {
-                Self.logger.error("Failed to handle video data: \(error.localizedDescription)")
+                return lookup
             }
+        } catch {
+            Self.logger.error("Failed to fetch/create handler: \(error.localizedDescription)")
+            return SubscriptionError.none.rawValue
+        }
+        if let diff = self.timestampTimeDiff {
+            handler.setTimeDiff(diff: diff)
+        }
+        do {
+            try handler.submitEncodedData(frame)
+        } catch {
+            Self.logger.error("Failed to handle video data: \(error.localizedDescription)")
+            return SubscriptionError.none.rawValue
         }
         return SubscriptionError.none.rawValue
     }
@@ -257,20 +263,20 @@ class VideoSubscription: QSubscriptionDelegateObjC {
         }
     }
 
-    private func makeHandler(namespace: QuicrNamespace) throws {
+    private func makeHandler(namespace: QuicrNamespace) throws -> VideoHandler {
         guard let config = self.profiles[namespace] else {
             throw "Missing config for: \(namespace)"
         }
-        self.videoHandlers[namespace] = try .init(namespace: namespace,
-                                                  config: config,
-                                                  participants: self.participants,
-                                                  metricsSubmitter: self.submitter,
-                                                  videoBehaviour: videoBehaviour,
-                                                  reliable: self.reliable,
-                                                  granularMetrics: self.granularMetrics,
-                                                  jitterBufferConfig: self.jitterBufferConfig,
-                                                  simulreceive: self.simulreceive,
-                                                  variances: self.decodedVariances)
+        return try .init(namespace: namespace,
+                         config: config,
+                         participants: self.participants,
+                         metricsSubmitter: self.submitter,
+                         videoBehaviour: self.videoBehaviour,
+                         reliable: self.reliable,
+                         granularMetrics: self.granularMetrics,
+                         jitterBufferConfig: self.jitterBufferConfig,
+                         simulreceive: self.simulreceive,
+                         variances: self.decodedVariances)
     }
 
     struct SimulreceiveItem: Equatable {
@@ -442,7 +448,8 @@ class VideoSubscription: QSubscriptionDelegateObjC {
             }
             let completedReport = report
             Task(priority: .utility) {
-                await measurement.reportSimulreceiveChoice(choices: completedReport, timestamp: decisionTime!)
+                await measurement.measurement.reportSimulreceiveChoice(choices: completedReport,
+                                                                       timestamp: decisionTime!)
             }
         }
 

@@ -21,16 +21,15 @@ struct RelaySettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .onChange(of: relayConfig.value.connectionProtocol) { newValue in
+                    .onChange(of: relayConfig.value.connectionProtocol) { _, newValue in
                         relayConfig.value.port = defaultProtocolPorts[newValue] ?? relayConfig.value.port
                     }
                 }
 
                 LabeledContent("Port") {
-                    TextField("relay_port",
-                              value: $relayConfig.value.port,
-                              format: .number.grouping(.never))
-                        .keyboardType(.numberPad)
+                    NumberView(value: self.$relayConfig.value.port,
+                               formatStyle: IntegerFormatStyle<UInt16>.number.grouping(.never),
+                               name: "Port")
                 }
             }
             .formStyle(.columns)

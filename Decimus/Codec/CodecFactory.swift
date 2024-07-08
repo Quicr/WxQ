@@ -72,7 +72,7 @@ class CodecFactory {
         guard let codec = CodecType.allCases.first(where: {
             String(describing: $0) == elements[0]
         }) else {
-            Self.logger.warning("Unknown codec provided from quality profile: \(qualityProfile)")
+            Self.logger.warning("Unknown codec provided from quality profile: \(qualityProfile)", alert: true)
             return UnknownCodecConfig()
         }
 
@@ -100,7 +100,7 @@ class CodecFactory {
                 return UnknownCodecConfig()
             }
         } catch {
-            Self.logger.error("Failed to create codec config: \(error)", alert: true)
+            Self.logger.error("Failed to create codec config: \(error)")
             return UnknownCodecConfig()
         }
     }

@@ -106,4 +106,9 @@
     // if (!jitterBuffer) return 0;
     return jitterBuffer->GetMetrics();
 }
+
+-(size_t)getCurrentDepth
+{
+    return jitterBuffer->GetCurrentDepth().count();
+}
 @end

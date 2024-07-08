@@ -6,7 +6,7 @@ class VarianceCalculator {
     private var lock = OSAllocatedUnfairLock()
     private let varianceMaxCount: Int
     private let expectedOccurrences: Int
-    private let measurement: VarianceCalculatorMeasurement?
+    private let measurement: MeasurementRegistration<VarianceCalculatorMeasurement>?
 
     /// Create a new calculator.
     /// - Parameter expectedOccurences The number of occurences after which a calculation will be completed.
@@ -24,10 +24,7 @@ class VarianceCalculator {
                 throw "Source & stage needed for metrics"
             }
             let measurement = VarianceCalculatorMeasurement(source: source, stage: stage)
-            self.measurement = measurement
-            Task(priority: .utility) {
-                await submitter.register(measurement: measurement)
-            }
+            self.measurement = .init(measurement: measurement, submitter: submitter)
         } else {
             self.measurement = nil
         }
@@ -75,7 +72,7 @@ class VarianceCalculator {
         let variance = newest.timeIntervalSince(oldest)
         if let measurement = self.measurement {
             Task(priority: .utility) {
-                await measurement.reportVariance(variance: variance, timestamp: now, count: times.count)
+                await measurement.measurement.reportVariance(variance: variance, timestamp: now, count: times.count)
             }
         }
         return variance

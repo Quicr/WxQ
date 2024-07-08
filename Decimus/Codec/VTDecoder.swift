@@ -26,7 +26,7 @@ class VTDecoder {
         guard let session = self.session else { return }
         let flush = VTDecompressionSessionWaitForAsynchronousFrames(session)
         if flush != .zero {
-            Self.logger.error("VTDecoder failed to flush frames", alert: true)
+            Self.logger.warning("VTDecoder failed to flush frames: \(flush)", alert: true)
         }
         VTDecompressionSessionInvalidate(session)
     }

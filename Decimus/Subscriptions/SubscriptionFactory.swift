@@ -59,9 +59,10 @@ struct SubscriptionConfig: Codable {
     var pauseResume: Bool
     var quicrLogs: Bool
     var quicPriorityLimit: UInt8
+    var doSFrame: Bool
 
     init() {
-        jitterMaxTime = 0.5
+        jitterMaxTime = 0.2
         jitterDepthTime = 0.2
         opusWindowSize = .twentyMs
         videoBehaviour = .freeze
@@ -82,6 +83,7 @@ struct SubscriptionConfig: Codable {
         pauseResume = false
         quicrLogs = false
         quicPriorityLimit = 0
+        doSFrame = true
     }
 }
 

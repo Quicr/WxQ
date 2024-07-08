@@ -54,8 +54,7 @@ private struct LoginForm: View {
                                 do {
                                     try await fetchManifest()
                                 } catch {
-                                    Self.logger.error("Failed to fetch manifest: \(error.localizedDescription)",
-                                                      alert: true)
+                                    Self.logger.error("Failed to fetch manifest: \(error.localizedDescription)")
                                 }
                             }
                         })
@@ -138,7 +137,7 @@ private struct LoginForm: View {
                 do {
                     try await fetchManifest()
                 } catch {
-                    Self.logger.error("Failed to fetch manifest: \(error.localizedDescription)", alert: true)
+                    Self.logger.error("Failed to fetch manifest: \(error.localizedDescription)")
                     return
                 }
             }
@@ -148,12 +147,12 @@ private struct LoginForm: View {
         }
         #if os(tvOS)
         .continuityDevicePicker(isPresented: $showContinuityDevicePicker) { _ in
-            print("Selected a device")
+        print("Selected a device")
         }
         .task {
-            showContinuityDevicePicker = AVCaptureDevice.default(.continuityCamera,
-                                       for: .video,
-                                       position: .unspecified) == nil
+        showContinuityDevicePicker = AVCaptureDevice.default(.continuityCamera,
+        for: .video,
+        position: .unspecified) == nil
         }
         #endif
     }
@@ -214,7 +213,7 @@ struct CallSetupView: View {
                         .foregroundColor(.white)
                     LoginForm(joinMeetingCallback)
                     #if targetEnvironment(macCatalyst)
-                        .frame(maxWidth: 350)
+                    .frame(maxWidth: 350)
                     #endif
 
                     NavigationLink(destination: SettingsView()) {

@@ -26,7 +26,8 @@ public:
                 std::uint16_t protocol,
                 size_t chunk_size,
                 qtransport::TransportConfig config,
-                bool useParentLogger);
+                bool useParentLogger,
+                bool encrypt);
 
     void disconnect();
     bool connected();

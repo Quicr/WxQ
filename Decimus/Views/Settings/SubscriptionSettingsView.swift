@@ -32,13 +32,8 @@ struct SubscriptionSettingsView: View {
                         format: .number)
                         .onChange(of: subscriptionConfig.value.jitterDepthTime) {
                             subscriptionConfig.value.videoJitterBuffer.minDepth = $0
+                            subscriptionConfig.value.jitterMaxTime = $0
                         }
-                }
-                LabeledContent("Audio Jitter Max Depth (s)") {
-                    TextField(
-                        "Depth (s)",
-                        value: $subscriptionConfig.value.jitterMaxTime,
-                        format: .number)
                 }
                 LabeledContent("Video Jitter Capacity (s)") {
                     TextField(
@@ -121,10 +116,9 @@ struct SubscriptionSettingsView: View {
                 }
 
                 LabeledContent("Quality miss threshold (frames)") {
-                    TextField(
-                        "Quality miss threshold (frames)",
-                        value: $subscriptionConfig.value.qualityMissThreshold,
-                        format: .number)
+                    NumberView(value: self.$subscriptionConfig.value.qualityMissThreshold,
+                               formatStyle: IntegerFormatStyle<Int>.number.grouping(.never),
+                               name: "Threshold")
                 }
 
                 HStack {
@@ -133,10 +127,9 @@ struct SubscriptionSettingsView: View {
                 }
 
                 LabeledContent("Pause miss threshold (frames)") {
-                    TextField(
-                        "Pause miss threshold (frames)",
-                        value: $subscriptionConfig.value.pauseMissThreshold,
-                        format: .number)
+                    NumberView(value: self.$subscriptionConfig.value.pauseMissThreshold,
+                               formatStyle: IntegerFormatStyle<Int>.number.grouping(.never),
+                               name: "Threshold")
                 }
             }
             .formStyle(.columns)
@@ -153,6 +146,12 @@ struct SubscriptionSettingsView: View {
                 Toggle(isOn: $subscriptionConfig.value.mediaReliability.video.publication) {}
                 Text("Video Subscription")
                 Toggle(isOn: $subscriptionConfig.value.mediaReliability.video.subscription) {}
+            }
+        }
+        Section("Security") {
+            HStack {
+                Text("SFrame")
+                Toggle(isOn: $subscriptionConfig.value.doSFrame) {}
             }
         }
         Section("Transport") {

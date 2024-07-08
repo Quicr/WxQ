@@ -25,11 +25,11 @@ class DecimusAudioEngine {
 
     private lazy var reconfigure: (Notification) -> Void = { [weak self] _ in
         guard let self = self else { return }
-        Self.logger.notice("AVAudioEngineConfigurationChange")
+        Self.logger.debug("AVAudioEngineConfigurationChange")
         do {
             try self.reconfigureAndRestart()
         } catch {
-            Self.logger.critical("Failed to restart audio on config change. If you switched device, try again?")
+            Self.logger.error("Failed to restart audio on config change. If you switched device, try again?")
         }
     }
 
@@ -44,15 +44,21 @@ class DecimusAudioEngine {
         switch type {
         case .began:
             // We got interupted.
-            Self.logger.warning("Audio interuption")
+            Self.logger.warning("Audio interuption", alert: true)
         case .ended:
             // Resume.
-            do {
-                try AVAudioSession.sharedInstance().setActive(true)
-                try self.reconfigureAndRestart()
-                Self.logger.notice("Audio resumed")
-            } catch {
-                Self.logger.error("Failed to resume audio session")
+            guard let optionsValue = info[AVAudioSessionInterruptionOptionKey] as? UInt else { return }
+            let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+            if options.contains(.shouldResume) {
+                do {
+                    try AVAudioSession.sharedInstance().setActive(true)
+                    try self.reconfigureAndRestart()
+                    Self.logger.notice("Audio resumed")
+                } catch {
+                    Self.logger.error("Failed to resume audio session")
+                }
+            } else {
+                Self.logger.warning("Audio interuption ended, but didn't ask resume", alert: true)
             }
         @unknown default:
             Self.logger.warning("Got unexpected audio interuption value")
@@ -69,7 +75,7 @@ class DecimusAudioEngine {
               let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
             return
         }
-        Self.logger.notice("Route change: \(reason)")
+        Self.logger.debug("Route change: \(reason)")
     }
 
     init() throws {

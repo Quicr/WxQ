@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-struct ManifestServerConfig: Codable {
+struct ManifestServerConfig: Codable, Equatable {
     var scheme: String = "https"
     var url: String = "conf.quicr.ctgpoc.com"
     var port: Int = 411
@@ -14,7 +14,6 @@ class ManifestController {
     static let shared = ManifestController()
 
     private var components: URLComponents = .init()
-    private var mutex: DispatchSemaphore = .init(value: 0)
     private var currentConfig: String = ""
 
     func setServer(config: ManifestServerConfig) {
@@ -36,27 +35,6 @@ class ManifestController {
         request.timeoutInterval = 90
 
         return request
-    }
-
-    private func sendRequest(_ request: URLRequest, callback: @escaping (Data) -> Void) {
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            defer { self.mutex.signal() }
-
-            if let error = error {
-                Self.logger.error("Failed to send request: \(error)")
-                return
-            }
-
-            if let response = response as? HTTPURLResponse {
-                Self.logger.info("Got HTTP response with status code: \(response.statusCode)")
-            }
-
-            if let data = data {
-                callback(data)
-            }
-        }
-        task.resume()
-        mutex.wait()
     }
 
     func getConfigs() async throws -> [Config] {

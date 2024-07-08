@@ -2,24 +2,24 @@ import SwiftUI
 
 private func getLogColour(_ level: DecimusLogger.LogLevel) -> Color {
     switch level {
-    case .error, .critical:
+    case .error:
         return .red
     case .warning:
         return .orange
     case .debug:
-        return .pink
+        return .indigo
     default:
         return .blue
     }
 }
 
 struct AlertView: View {
-    @StateObject var logger = DecimusLogger.shared
+    @StateObject private var logger = DecimusLogger.shared
 
     var body: some View {
         VStack {
             if !logger.alerts.isEmpty {
-                Text("Errors:")
+                Text("Alerts:")
                     .font(.title)
                     .foregroundColor(.red)
 
@@ -27,7 +27,7 @@ struct AlertView: View {
                 Button {
                     logger.alerts.removeAll()
                 } label: {
-                    Text("Clear Errors")
+                    Text("Clear Alerts")
                 }
                 .buttonStyle(.borderedProminent)
 
@@ -37,6 +37,7 @@ struct AlertView: View {
                         Text(alert.message)
                             .padding()
                             .background(getLogColour(alert.level))
+                            .clipShape(Capsule())
                     }
                 }
             }
