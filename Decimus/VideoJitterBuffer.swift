@@ -12,6 +12,7 @@ class VideoJitterBuffer {
         var mode: Mode = .none
         var minDepth: TimeInterval = 0.2
         var capacity: TimeInterval = 2
+        var adaptive: Bool = false
     }
 
     enum Mode: CaseIterable, Identifiable, Codable {
@@ -23,24 +24,27 @@ class VideoJitterBuffer {
     }
 
     private static let logger = DecimusLogger(VideoJitterBuffer.self)
-    private let minDepth: TimeInterval
+    private var minDepth: TimeInterval
     private var buffer: CMBufferQueue
     private let measurement: MeasurementRegistration<VideoJitterBufferMeasurement>?
     private var play: Bool = false
     private var lastSequenceRead = ManagedAtomic<UInt64>(0)
     private var lastSequenceSet = ManagedAtomic<Bool>(false)
+    private let capacity: TimeInterval
+    private let originalDepth: TimeInterval
 
     /// Create a new video jitter buffer.
     /// - Parameter namespace The namespace of the video this buffer is used for, for identification purposes.
     /// - Parameter metricsSubmitter Optionally, an object to submit metrics through.
     /// - Parameter sort True to actually sort on sequence number, false if they're already in order.
     /// - Parameter minDepth Fixed initial delay in seconds.
-    /// - Parameter capacity Capacity in buffers / elements.
+    /// - Parameter capacity Capacity in time.
     init(namespace: QuicrNamespace,
          metricsSubmitter: MetricsSubmitter?,
          sort: Bool,
          minDepth: TimeInterval,
-         capacity: Int) throws {
+         capacity: TimeInterval,
+         duration: TimeInterval) throws {
         let handlers = CMBufferQueue.Handlers { builder in
             builder.compare {
                 if !sort {
@@ -79,15 +83,24 @@ class VideoJitterBuffer {
                 ($0 as! DecimusVideoFrame).samples.reduce(true) { $0 && $1.dataReadiness == .ready }
             }
         }
-        self.buffer = try .init(capacity: capacity, handlers: handlers)
+        let elementCapacity = CMItemCount(round(capacity / duration))
+        self.buffer = try .init(capacity: elementCapacity, handlers: handlers)
+        guard minDepth <= capacity else {
+            throw "Target depth cannot be > capacity"
+        }
+        self.minDepth = minDepth
+        self.originalDepth = minDepth
+        self.capacity = capacity
         if let metricsSubmitter = metricsSubmitter {
             let measurement = VideoJitterBufferMeasurement(namespace: namespace)
             self.measurement = .init(measurement: measurement, submitter: metricsSubmitter)
+            let now = Date.now
+            Task(priority: .utility) {
+                await measurement.targetDepth(depth: self.minDepth, timestamp: now)
+            }
         } else {
             self.measurement = nil
         }
-
-        self.minDepth = minDepth
     }
 
     /// Write a video frame into the jitter buffer.
@@ -108,6 +121,18 @@ class VideoJitterBuffer {
         if let measurement = self.measurement {
             Task(priority: .utility) {
                 await measurement.measurement.write(timestamp: from)
+            }
+        }
+    }
+
+    func setTargetDepth(_ depth: TimeInterval, from: Date) {
+        // TODO(RichLogan): For now, don't exceed original declared depth.
+        let clampedDepth = min(depth, self.originalDepth)
+        self.minDepth = clampedDepth
+        if let measurement = self.measurement {
+            Task(priority: .utility) {
+                await measurement.measurement.targetDepth(depth: clampedDepth, timestamp: from)
+                await measurement.measurement.idealTargetDepth(depth: depth, timestamp: from)
             }
         }
     }

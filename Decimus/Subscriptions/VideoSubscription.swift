@@ -50,6 +50,8 @@ class VideoSubscription: QSubscriptionDelegateObjC {
     private let decodedVariances: VarianceCalculator
     private var formats: [QuicrNamespace: CMFormatDescription?] = [:]
     private var timestampTimeDiff: TimeInterval?
+    private var suspension = SlidingTimeWindow(length: 60)
+    private var currentMax: TimeInterval?
 
     init(sourceId: SourceIDType,
          profileSet: QClientProfileSet,
@@ -211,6 +213,13 @@ class VideoSubscription: QSubscriptionDelegateObjC {
             startRenderTask()
         }
 
+        // Suspension tracking.
+        if self.currentMax == nil {
+            // Ensure that we take into account our configured value.
+            self.suspension.add(timestamp: now.addingTimeInterval(-self.jitterBufferConfig.minDepth))
+        }
+        self.suspension.add(timestamp: now)
+
         let handler: VideoHandler
         do {
             handler = try self.handlerLock.withLock {
@@ -221,15 +230,33 @@ class VideoSubscription: QSubscriptionDelegateObjC {
                     self.videoHandlers[name] = handler
                     return handler
                 }
+
+                // While we're here, set depth for everyone.
+                if self.jitterBufferConfig.adaptive {
+                    if let thisMax = self.suspension.max(from: now) {
+                        if let currentMax = self.currentMax,
+                           thisMax != currentMax {
+                            for handler in self.videoHandlers {
+                                handler.value.setTargetDepth(thisMax, from: now)
+                            }
+                        }
+                        self.currentMax = thisMax
+                    }
+                }
+
                 return lookup
             }
         } catch {
             Self.logger.error("Failed to fetch/create handler: \(error.localizedDescription)")
             return SubscriptionError.none.rawValue
         }
+
+        // Set timestamp diff.
         if let diff = self.timestampTimeDiff {
             handler.setTimeDiff(diff: diff)
         }
+
+        // Submit the data.
         do {
             try handler.submitEncodedData(frame, from: now)
         } catch {

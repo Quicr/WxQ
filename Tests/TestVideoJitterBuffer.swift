@@ -44,11 +44,13 @@ final class TestVideoJitterBuffer: XCTestCase {
     }
 
     func testPlayout(sort: Bool) throws {
+        let duration: TimeInterval = 1 / 30
         let buffer = try VideoJitterBuffer(namespace: .init(),
                                            metricsSubmitter: nil,
                                            sort: sort,
-                                           minDepth: 1/30 * 2.5,
-                                           capacity: 4)
+                                           minDepth: duration * 2.5,
+                                           capacity: duration * 4,
+                                           duration: duration)
 
         // Write 1, no play.
         let frame1 = try exampleSample(groupId: 0,
@@ -90,11 +92,13 @@ final class TestVideoJitterBuffer: XCTestCase {
 
     // Out of orders should go in order.
     func testOutOfOrder() throws {
+        let duration: TimeInterval = 1 / 30
         let buffer = try VideoJitterBuffer(namespace: .init(),
                                            metricsSubmitter: nil,
                                            sort: true,
                                            minDepth: 0,
-                                           capacity: 2)
+                                           capacity: duration * 2,
+                                           duration: duration)
 
         // Write newer.
         let frame2 = try exampleSample(groupId: 0,
@@ -126,11 +130,13 @@ final class TestVideoJitterBuffer: XCTestCase {
     }
 
     func testOlderFrame(_ sort: Bool) throws {
+        let duration: TimeInterval = 1 / 30
         let buffer = try VideoJitterBuffer(namespace: .init(),
                                            metricsSubmitter: nil,
                                            sort: sort,
                                            minDepth: 0,
-                                           capacity: 2)
+                                           capacity: duration * 2,
+                                           duration: duration)
 
         // Write newer.
         let frame2 = try exampleSample(groupId: 0,
@@ -157,11 +163,13 @@ final class TestVideoJitterBuffer: XCTestCase {
         let startTime: Date = .now
         var waitTime: TimeInterval?
         let minDepth: TimeInterval = 0.2
+        let duration: TimeInterval = 1 / 30
         let buffer = try VideoJitterBuffer(namespace: .init(),
                                            metricsSubmitter: nil,
                                            sort: false,
                                            minDepth: minDepth,
-                                           capacity: 1)
+                                           capacity: minDepth,
+                                           duration: duration)
 
         // No calculation possible with no frame available.
         waitTime = buffer.calculateWaitTime(from: startTime, offset: 0)
@@ -169,6 +177,7 @@ final class TestVideoJitterBuffer: XCTestCase {
     }
 
     func testWaitTimeMinDepth() throws {
+        let duration: TimeInterval = 1 / 30
         let startTime: Date = .now
         var waitTime: TimeInterval?
         let minDepth: TimeInterval = 0.2
@@ -176,7 +185,8 @@ final class TestVideoJitterBuffer: XCTestCase {
                                            metricsSubmitter: nil,
                                            sort: false,
                                            minDepth: minDepth,
-                                           capacity: 1)
+                                           capacity: minDepth,
+                                           duration: duration)
 
         // At first write, and otherwise on time, we should wait the min depth.
         let presentation = CMTime(value: CMTimeValue(Date.timeIntervalSinceReferenceDate), timescale: 1)
@@ -208,14 +218,15 @@ final class TestVideoJitterBuffer: XCTestCase {
     func testWaitTimeN() throws {
         let startTime: Date = .now
         let minDepth: TimeInterval = 0.2
+        let duration = CMTime(value: 1, timescale: 30)
         let buffer = try VideoJitterBuffer(namespace: .init(),
                                            metricsSubmitter: nil,
                                            sort: false,
                                            minDepth: minDepth,
-                                           capacity: 2)
+                                           capacity: minDepth * 2,
+                                           duration: duration.seconds)
         let presentation = CMTime(value: CMTimeValue(startTime.timeIntervalSinceReferenceDate), timescale: 1)
         var diff: TimeInterval?
-        let duration = CMTime(value: 1, timescale: 30)
 
         for count in 0..<2 {
             if diff == nil {
@@ -279,11 +290,14 @@ final class TestVideoJitterBuffer: XCTestCase {
         // Create jitter buffer.
         let capacity = 1000
         let targetDepth: TimeInterval = 0.2
-        let buffer = try VideoJitterBuffer(namespace: "1234", metricsSubmitter: nil, sort: false, minDepth: targetDepth, capacity: capacity)
-
-        // Frame characteristics.
         let fps = 30
         let duration: TimeInterval = 1 / TimeInterval(fps)
+        let buffer = try VideoJitterBuffer(namespace: "1234",
+                                           metricsSubmitter: nil,
+                                           sort: false,
+                                           minDepth: targetDepth,
+                                           capacity: TimeInterval(capacity) * duration,
+                                           duration: duration)
 
         // A lot of frames will arrive now().
         let firstArrival = Date.now
@@ -354,11 +368,13 @@ final class TestVideoJitterBuffer: XCTestCase {
 
     func testDepth() throws {
         let fps: UInt8 = 30
+        let duration: TimeInterval = 1 / TimeInterval(fps)
         let buffer = try VideoJitterBuffer(namespace: .init(),
                                            metricsSubmitter: nil,
                                            sort: true,
                                            minDepth: 0,
-                                           capacity: 2)
+                                           capacity: 2,
+                                           duration: duration)
 
         // 0 when empty.
         XCTAssertEqual(buffer.getDepth(), 0)

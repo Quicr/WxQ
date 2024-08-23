@@ -23,6 +23,14 @@ extension VideoJitterBuffer {
             record(field: "currentDepth", value: UInt32(depth * 1000) as AnyObject, timestamp: timestamp)
         }
 
+        func targetDepth(depth: TimeInterval, timestamp: Date) {
+            record(field: "targetDepth", value: depth, timestamp: timestamp)
+        }
+
+        func idealTargetDepth(depth: TimeInterval, timestamp: Date) {
+            record(field: "idealDepth", value: depth, timestamp: timestamp)
+        }
+
         func underrun(timestamp: Date?) {
             self.underruns += 1
             record(field: "underruns", value: self.underruns as AnyObject, timestamp: timestamp)

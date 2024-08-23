@@ -41,6 +41,10 @@ struct SubscriptionSettingsView: View {
                         value: $subscriptionConfig.value.videoJitterBuffer.capacity,
                         format: .number)
                 }
+                HStack {
+                    Text("Video Jitter - Adaptive")
+                    Toggle(isOn: $subscriptionConfig.value.videoJitterBuffer.adaptive) {}
+                }
                 Picker("Opus Window Size (s)", selection: $subscriptionConfig.value.opusWindowSize) {
                     ForEach(OpusWindowSize.allCases) {
                         Text(String(describing: $0))

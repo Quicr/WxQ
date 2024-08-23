@@ -52,6 +52,7 @@
 		9B131E332B7E4A1C00B29D77 /* ApplicationHEVCSEIs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B131E322B7E4A1C00B29D77 /* ApplicationHEVCSEIs.swift */; };
 		9B131E352B7E548700B29D77 /* CMSampleBuffer+Attachments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B131E342B7E548700B29D77 /* CMSampleBuffer+Attachments.swift */; };
 		9B165A1529840B610017079F /* CallController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B165A1429840B610017079F /* CallController.swift */; };
+		9B3D773E2C64B70200858313 /* SlidingWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3D773D2C64B70200858313 /* SlidingWindow.swift */; };
 		9B3F86852C58F4B800B5B8BA /* CircularBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3F86842C58F4B800B5B8BA /* CircularBuffer.swift */; };
 		9B4788D42B972F990056CE7E /* TestVideoSubscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4788D32B972F990056CE7E /* TestVideoSubscription.swift */; };
 		9B480662297EAF170040F5D4 /* InCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B480661297EAF170040F5D4 /* InCallView.swift */; };
@@ -221,6 +222,7 @@
 		9B131E322B7E4A1C00B29D77 /* ApplicationHEVCSEIs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationHEVCSEIs.swift; sourceTree = "<group>"; };
 		9B131E342B7E548700B29D77 /* CMSampleBuffer+Attachments.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CMSampleBuffer+Attachments.swift"; sourceTree = "<group>"; };
 		9B165A1429840B610017079F /* CallController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallController.swift; sourceTree = "<group>"; };
+		9B3D773D2C64B70200858313 /* SlidingWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingWindow.swift; sourceTree = "<group>"; };
 		9B3F86842C58F4B800B5B8BA /* CircularBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularBuffer.swift; sourceTree = "<group>"; };
 		9B4788D32B972F990056CE7E /* TestVideoSubscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestVideoSubscription.swift; sourceTree = "<group>"; };
 		9B480661297EAF170040F5D4 /* InCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InCallView.swift; sourceTree = "<group>"; };
@@ -520,6 +522,7 @@
 				9B131E342B7E548700B29D77 /* CMSampleBuffer+Attachments.swift */,
 				9BC53C9B2BFE075300BB39C6 /* VarianceCalculator.swift */,
 				9B3F86842C58F4B800B5B8BA /* CircularBuffer.swift */,
+				9B3D773D2C64B70200858313 /* SlidingWindow.swift */,
 			);
 			path = Decimus;
 			sourceTree = "<group>";
@@ -940,6 +943,7 @@
 				1867635D2B2B6BB000339421 /* H264Publication+Measurement.swift in Sources */,
 				FF2498B42A55E8CC00C6D66D /* SubscriptionFactory.swift in Sources */,
 				186397A12ADE0B9100FBF877 /* VideoDevices.swift in Sources */,
+				9B3D773E2C64B70200858313 /* SlidingWindow.swift in Sources */,
 				9B52EE332B763157006E9C58 /* PublicationPopover.swift in Sources */,
 				18C89A3C2A13D30B005B333B /* MetricsSubmitter.swift in Sources */,
 				FFD1CFF02A214FA60034CDD0 /* SubscriberDelegate.swift in Sources */,

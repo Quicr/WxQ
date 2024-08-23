@@ -56,6 +56,7 @@ class VideoHandler: CustomStringConvertible {
 
     private var duration: TimeInterval? = 0
     private let variances: VarianceCalculator
+    private var currentTargetDepth: TimeInterval
 
     /// Create a new video handler.
     /// - Parameters:
@@ -100,6 +101,7 @@ class VideoHandler: CustomStringConvertible {
         self.metricsSubmitter = metricsSubmitter
         self.description = self.namespace
         self.variances = variances
+        self.currentTargetDepth = jitterBufferConfig.minDepth
 
         if jitterBufferConfig.mode != .layer {
             // Create the decoder.
@@ -250,8 +252,9 @@ class VideoHandler: CustomStringConvertible {
         self.jitterBuffer = try .init(namespace: self.namespace,
                                       metricsSubmitter: self.metricsSubmitter,
                                       sort: !self.reliable,
-                                      minDepth: self.jitterBufferConfig.minDepth,
-                                      capacity: Int(floor(self.jitterBufferConfig.capacity / duration)))
+                                      minDepth: self.currentTargetDepth,
+                                      capacity: self.jitterBufferConfig.capacity,
+                                      duration: duration)
         self.duration = duration
     }
 
@@ -316,6 +319,17 @@ class VideoHandler: CustomStringConvertible {
         _ = self.timestampTimeDiffUs.compareExchange(expected: 0,
                                                      desired: diffUs,
                                                      ordering: .acquiringAndReleasing)
+    }
+
+    /// Update the target depth of this handler's jitter buffer, if any.
+    /// - Parameter depth: Target depth in seconds.
+    func setTargetDepth(_ depth: TimeInterval, from: Date) {
+        self.currentTargetDepth = depth
+        guard let buffer = self.jitterBuffer else {
+            Self.logger.warning("Set target depth on nil buffer!?")
+            return
+        }
+        buffer.setTargetDepth(depth, from: from)
     }
 
     private func decode(sample: DecimusVideoFrame, from: Date) throws {
