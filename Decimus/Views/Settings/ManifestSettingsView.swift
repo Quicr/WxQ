@@ -33,6 +33,11 @@ struct ManifestSettingsView: View {
                 LabeledContent("Address") {
                     TextField("manifest_address", text: $manifestConfig.value.url, prompt: Text("127.0.0.1"))
                         .keyboardType(.URL)
+                        .onChange(of: manifestConfig.value.url) {
+                            if let url = URL(string: manifestConfig.value.url) {
+                                manifestConfig.value.url = url.host() ?? manifestConfig.value.url;
+                            }
+                        }
                 }
 
                 LabeledContent("Port") {

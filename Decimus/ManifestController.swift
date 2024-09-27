@@ -116,7 +116,10 @@ class ManifestController {
     }
 
     private func makeRequest(method: String, components: URLComponents) throws -> URLRequest {
-        guard let url = URL(string: components.string!) else {
+        guard let str = components.string else {
+            throw "Invalid URL: no components"
+        }
+        guard let url = URL(string: str) else {
             throw "Invalid URL: \(components)"
         }
 
